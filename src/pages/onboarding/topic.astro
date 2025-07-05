@@ -1,6 +1,73 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 
+// Definir los topics disponibles
+const topics = [
+  {
+    id: "technology",
+    title: "Technology",
+    description: "Learn about computers, software, AI, and digital innovation.",
+    icon: "💻",
+    features: ["Programming terms", "Digital devices", "Software concepts", "Tech trends"]
+  },
+  {
+    id: "business",
+    title: "Business",
+    description: "Master professional communication and business terminology.",
+    icon: "💼",
+    features: ["Meeting language", "Negotiations", "Financial terms", "Leadership skills"]
+  },
+  {
+    id: "travel",
+    title: "Travel",
+    description: "Navigate the world with confidence and cultural awareness.",
+    icon: "✈️",
+    features: ["Airport vocabulary", "Hotel phrases", "Directions", "Cultural expressions"]
+  },
+  {
+    id: "health",
+    title: "Health & Fitness",
+    description: "Discuss wellness, medical topics, and healthy living.",
+    icon: "🏥",
+    features: ["Medical terminology", "Symptoms description", "Exercise vocabulary", "Nutrition terms"]
+  },
+  {
+    id: "education",
+    title: "Education",
+    description: "Academic English for studying, research, and learning.",
+    icon: "📚",
+    features: ["Academic writing", "Research methods", "Presentations", "Study techniques"]
+  },
+  {
+    id: "entertainment",
+    title: "Entertainment",
+    description: "Enjoy movies, music, books, and popular culture.",
+    icon: "🎬",
+    features: ["Movie reviews", "Music genres", "Book discussions", "Pop culture"]
+  },
+  {
+    id: "food",
+    title: "Food & Cooking",
+    description: "Explore culinary vocabulary and dining experiences.",
+    icon: "🍽️",
+    features: ["Restaurant language", "Cooking methods", "Ingredients", "Food preferences"]
+  },
+  {
+    id: "science",
+    title: "Science",
+    description: "Understand scientific concepts and discoveries.",
+    icon: "🔬",
+    features: ["Scientific method", "Research terminology", "Lab equipment", "Natural phenomena"]
+  },
+  {
+    id: "sports",
+    title: "Sports",
+    description: "Talk about athletics, competitions, and physical activities.",
+    icon: "⚽",
+    features: ["Sports terminology", "Competition language", "Team dynamics", "Athletic performance"]
+  }
+];
+
 // Obtener el nivel seleccionado de las cookies
 const selectedLevel = Astro.cookies.get("selectedLevel")?.value;
 
@@ -19,26 +86,45 @@ const currentLevelInfo =
   selectedLevel && selectedLevel in levelInfo
     ? levelInfo[selectedLevel as LevelKey]
     : null;
+
+// Manejar la selección de topic (SSR)
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const selectedTopic = formData.get('topic');
+  
+  if (selectedTopic) {
+    // Guardar en cookies
+    Astro.cookies.set('selectedTopic', selectedTopic, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax'
+    });
+    
+    // Redirigir a la siguiente página o dashboard
+    return Astro.redirect('/dashboard');
+  }
+}
+
+// Obtener el topic seleccionado de las cookies (para mantener el estado)
+const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
 ---
 
 <Layout>
-  <div
-    class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"
-  >
-    <div class="container mx-auto px-4 py-12 max-w-4xl">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
       <!-- Header Section -->
       <div class="text-center mb-12">
-        <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6"
-        >
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
           <span class="text-2xl">🎯</span>
         </div>
         <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
           What topics interest you?
         </h1>
         <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          Select the topics you'd like to focus on in your English learning
-          journey.
+          Select the topic you'd like to focus on in your English learning journey. 
+          You can change this later in your profile settings.
         </p>
       </div>
 
@@ -52,121 +138,162 @@ const currentLevelInfo =
       </div>
 
       <!-- Nivel seleccionado -->
-      {
-        currentLevelInfo && (
-          <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-center mb-4">
-              <div class="text-3xl mr-3">{currentLevelInfo.icon}</div>
-              <div class="text-center">
-                <h2 class="text-xl font-bold text-gray-900">
-                  Selected Level: {currentLevelInfo.title}
-                </h2>
-                <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  {currentLevelInfo.subtitle}
-                </span>
-              </div>
+      {currentLevelInfo && (
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <div class="flex items-center justify-center mb-4">
+            <div class="text-3xl mr-3">{currentLevelInfo.icon}</div>
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-900">
+                Selected Level: {currentLevelInfo.title}
+              </h2>
+              <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                {currentLevelInfo.subtitle}
+              </span>
             </div>
-            <p class="text-gray-600 text-center">
-              Great! Your English level has been set. Now let's choose your
-              learning topics.
-            </p>
           </div>
-        )
-      }
+          <p class="text-gray-600 text-center">
+            Great! Your English level has been set. Now let's choose your learning topics.
+          </p>
+        </div>
+      )}
 
-      <!-- Contenido temporal -->
-      <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">
-          ✅ SSR Navigation Working!
-        </h2>
-        <p class="text-gray-600 mb-6">
-          You successfully navigated using Server-Side Rendering.
-          {
-            selectedLevel
-              ? `Your selected level (${selectedLevel}) was saved in cookies.`
-              : "No level was selected."
-          }
-        </p>
+      <!-- Formulario de selección de topics -->
+      <form method="POST" class="space-y-8">
+        <!-- Topic Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                     {topics.map((topic) => (
+             <label class="topic-card cursor-pointer" for={topic.id}>
+               <input 
+                 type="radio" 
+                 name="topic" 
+                 id={topic.id} 
+                 value={topic.id}
+                 class="sr-only peer"
+                 checked={currentTopic === topic.id}
+               />
+              <div class="bg-white rounded-2xl border-2 border-gray-100 p-6 h-full transition-all duration-300 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-xl">
+                <!-- Icon and Title -->
+                <div class="flex items-center justify-between mb-4">
+                  <div class="text-3xl">{topic.icon}</div>
+                  <div class="text-right flex-1 ml-4">
+                    <h3 class="text-xl font-bold text-gray-900 peer-checked:text-blue-600 transition-colors">
+                      {topic.title}
+                    </h3>
+                  </div>
+                </div>
 
-        <div class="space-y-4">
-          <p class="text-sm text-gray-500">This page demonstrates that:</p>
-          <ul class="text-left max-w-md mx-auto space-y-2">
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Form submission works server-side
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Cookies are saved and retrieved
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Server-side redirection works
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              No client-side JavaScript needed
-            </li>
-          </ul>
+                <!-- Description -->
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                  {topic.description}
+                </p>
+
+                <!-- Features -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-3">You'll learn:</h4>
+                  <ul class="space-y-2">
+                    {topic.features.map((feature) => (
+                      <li class="flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                                 <!-- Selection Indicator -->
+                 <div class="mt-6 pt-4 border-t border-gray-100">
+                   <div class="flex items-center justify-between">
+                     <span class="text-sm text-gray-500">Select this topic</span>
+                     <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 transition-colors relative">
+                       <div class="absolute inset-1 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            </label>
+          ))}
         </div>
 
-        <div class="mt-8">
-          <a
-            href="/onboarding/level"
-            class="inline-flex items-center bg-blue-600 text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded transition-all duration-200 mr-4"
-          >
-            <svg
-              class="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"></path>
+                 <!-- Selection Summary -->
+         <div class="max-w-2xl mx-auto mb-8">
+           <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+             <div class="flex items-center justify-center mb-4">
+               <span class="text-2xl">📝</span>
+             </div>
+             <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">
+               Choose Your Focus
+             </h3>
+             <p class="text-gray-600 text-center mb-4">
+               Select one topic to start your learning journey. You can always change it later from your profile settings.
+             </p>
+             <div class="text-center">
+               <span class="text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full" id="selection-status">
+                 No topic selected
+               </span>
+             </div>
+           </div>
+         </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <a href="/onboarding/level" class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
             Back to Level Selection
           </a>
+          
+                     <div class="text-center flex-1">
+             <p class="text-sm text-gray-500">
+               Topic can be changed later in your dashboard
+             </p>
+           </div>
+          
+          <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" id="continue-btn">
+            Start Learning
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
+
+  <!-- JavaScript para interactividad del selector -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const radioButtons = document.querySelectorAll('input[name="topic"]');
+      const selectionStatus = document.getElementById('selection-status');
+      const continueBtn = document.getElementById('continue-btn');
+      
+      function updateStatus() {
+        const selectedRadio = Array.from(radioButtons).find(radio => (radio as HTMLInputElement).checked) as HTMLInputElement;
+        
+        if (selectionStatus) {
+          if (selectedRadio) {
+            const selectedTopic = selectedRadio.value;
+            // Capitalizar la primera letra del topic
+            const topicName = selectedTopic.charAt(0).toUpperCase() + selectedTopic.slice(1);
+            selectionStatus.textContent = `${topicName} selected`;
+          } else {
+            selectionStatus.textContent = 'No topic selected';
+          }
+        }
+        
+        if (continueBtn) {
+          (continueBtn as HTMLButtonElement).disabled = !selectedRadio;
+        }
+      }
+      
+      radioButtons.forEach(radio => {
+        radio.addEventListener('change', updateStatus);
+      });
+      
+      // Actualizar estado inicial
+      updateStatus();
+    });
+  </script>
 </Layout>
