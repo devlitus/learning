@@ -1,5 +1,17 @@
 ---
+import Button from "../../components/button/Button.astro";
 import Layout from "../../layouts/Layout.astro";
+import { getAuthenticatedUser } from "../../utils/ssrAuthUtils";
+
+export const prerender = false;
+
+// Verificar autenticación en SSR
+const currentUser = await getAuthenticatedUser(Astro.cookies);
+
+if (!currentUser) {
+  // Usuario no autenticado - redirigir al signin
+  return Astro.redirect("/signin");
+}
 
 const levels = [
   {
@@ -38,7 +50,41 @@ const levels = [
 
 // Obtener el nivel actual de la URL o formulario
 const currentLevel = Astro.url.searchParams.get("level") || "";
-console.log("Current Level:", Astro.cookies.get("signin"));
+
+// Manejar el envío del formulario POST
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const selectedLevel = formData.get("level")?.toString();
+    
+    if (!selectedLevel) {
+      console.error("SSR: No level selected");
+      return Astro.redirect("/onboarding/level?error=no-level");
+    }
+    
+    console.log("SSR: Level selected:", selectedLevel);
+    
+    // TODO: Guardar el nivel en la base de datos
+    // Aquí puedes agregar la lógica para actualizar el perfil del usuario
+    
+    // Redirigir al siguiente paso del onboarding
+    if (selectedLevel === "assessment") {
+      return Astro.redirect("/onboarding/assessment");
+    } else {
+      return Astro.redirect("/onboarding/topic?level=" + selectedLevel);
+    }
+    
+  } catch (error) {
+    console.error("SSR: Error processing level form:", error);
+    return Astro.redirect("/onboarding/level?error=processing");
+  }
+}
+
+console.log("SSR: Level page - User authenticated:", currentUser.name);
+console.log("SSR: Current level from URL:", currentLevel);
+
+// Obtener errores de la URL si los hay
+const error = Astro.url.searchParams.get("error");
 ---
 
 <Layout>
@@ -49,7 +95,7 @@ console.log("Current Level:", Astro.cookies.get("signin"));
       <div class="text-center mb-12">
         <div class="text-6xl mb-6">🎯</div>
         <h1 class="text-4xl font-bold text-gray-900 mb-4">
-          ¡Hola, ! 👋
+          ¡Hola, {currentUser.name}! 👋
         </h1>
         <h2 class="text-3xl font-bold text-gray-900 mb-4">
           ¿Cuál es tu nivel de inglés?
@@ -58,6 +104,25 @@ console.log("Current Level:", Astro.cookies.get("signin"));
           Selecciona tu nivel actual para personalizar tu experiencia de aprendizaje. 
           No te preocupes, siempre puedes cambiarlo más tarde.
         </p>
+        
+        <!-- Mostrar errores si los hay -->
+        {error && (
+          <div class="mt-6 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-800">
+                  {error === "no-level" && "Por favor selecciona un nivel antes de continuar."}
+                  {error === "processing" && "Hubo un error al procesar tu selección. Inténtalo de nuevo."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <!-- Progress Indicator -->
@@ -153,7 +218,7 @@ console.log("Current Level:", Astro.cookies.get("signin"));
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <a href="/onboarding/previous" class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
+          <a href="/signin" class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -166,18 +231,59 @@ console.log("Current Level:", Astro.cookies.get("signin"));
             </p>
           </div>
           
-          <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center">
+          <Button 
+            type="submit" 
+            id="continue-btn"
+            class="continue-button w-full sm:w-auto font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          >
             Continue
             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   </div>
 </Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const selectedLevel = document.querySelector('input[name="level"]:checked');
+        
+        if (!selectedLevel) {
+          e.preventDefault();
+          alert('Por favor selecciona un nivel antes de continuar.');
+          return false;
+        }
+      });
+    }
+  });
+</script>
+
   <style>
+    /* Estilos para el botón Continue basado en selección */
+    .continue-button {
+      background-color: #9ca3af;
+      color: white;
+      cursor: not-allowed;
+    }
+    
+    form:has(input[name="level"]:checked) .continue-button {
+      background-color: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    
+    form:has(input[name="level"]:checked) .continue-button:hover {
+      background-color: #1d4ed8;
+    }
+    
+    /* Estilos existentes para las cards */
     .level-card input[type="radio"]:checked + div {
       border-color: #3b82f6;
       background-color: #eff6ff;
