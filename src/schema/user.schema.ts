@@ -6,7 +6,7 @@ export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email().nullable(),
   name: z.string().min(1).max(100),
-  password: z.string().nullable(), // En producción, esto no debería estar expuesto
+  password: z.string().nullable().optional(), // Opcional para SSR
 });
 
 // Schema para insertar un usuario
@@ -14,14 +14,12 @@ export const userInsertSchema = z.object({
   id: z.string().uuid().optional(),
   email: z.string().email().optional(),
   name: z.string().min(1).max(100),
-  password: z.string().optional(),
 });
 
 // Schema para actualizar un usuario
 export const userUpdateSchema = z.object({
   email: z.string().email().optional(),
   name: z.string().min(1).max(100).optional(),
-  password: z.string().optional(),
 });
 
 // Tipos TypeScript derivados de los schemas
@@ -34,7 +32,8 @@ export const fromSupabaseUser = (supabaseUser: SupabaseUser): User => {
   return userSchema.parse({
     id: supabaseUser.id,
     email: supabaseUser.email,
-    name: supabaseUser.name,  
+    name: supabaseUser.name,
+    password: null, // Siempre null por seguridad
   });
 };
 

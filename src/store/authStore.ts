@@ -235,28 +235,41 @@ export const authStore = createStore<AuthState>()(
   }))
 );
 
-// Configurar listener para cambios de autenticación
-supabase.auth.onAuthStateChange(async (event, session) => {
-  const { setSession, setUser, initialize } = authStore.getState();
+// Configurar listener para cambios de autenticación (solo una vez)
+let authListenerConfigured = false;
+
+const setupAuthListener = () => {
+  if (authListenerConfigured) return;
   
-  console.log('Auth state changed:', event, session);
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    const { setSession, setUser, initialize } = authStore.getState();
+    
+    console.log('Auth state changed:', event, session);
+    
+    switch (event) {
+      case 'SIGNED_IN':
+        if (session?.user) {
+          // Inicializar completamente para obtener datos del usuario
+          await initialize();
+        }
+        break;
+      case 'SIGNED_OUT':
+        setSession(null);
+        setUser(null);
+        break;
+      case 'TOKEN_REFRESHED':
+        setSession(session);
+        break;
+    }
+  });
   
-  switch (event) {
-    case 'SIGNED_IN':
-      if (session?.user) {
-        // Inicializar completamente para obtener datos del usuario
-        await initialize();
-      }
-      break;
-    case 'SIGNED_OUT':
-      setSession(null);
-      setUser(null);
-      break;
-    case 'TOKEN_REFRESHED':
-      setSession(session);
-      break;
-  }
-});
+  authListenerConfigured = true;
+};
+
+// Configurar listener solo en el cliente
+if (typeof window !== 'undefined') {
+  setupAuthListener();
+}
 
 // Hook para usar el store en componentes
 export const useAuthStore = () => {
@@ -265,3 +278,22 @@ export const useAuthStore = () => {
     subscribe: authStore.subscribe,
   };
 };
+
+// Inicializar el store una sola vez
+let storeInitialized = false;
+
+export const initializeAuthStore = async () => {
+  if (storeInitialized) return;
+  
+  try {
+    await authStore.getState().initialize();
+    storeInitialized = true;
+  } catch (error) {
+    console.error('Error initializing auth store:', error);
+  }
+};
+
+// Auto-inicializar en el cliente
+if (typeof window !== 'undefined') {
+  initializeAuthStore();
+}

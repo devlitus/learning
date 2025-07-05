@@ -27,6 +27,12 @@ export function getSupabaseTokens(cookies: AstroCookies): {
   const accessToken = cookies.get('sb-access-token')?.value || null;
   const refreshToken = cookies.get('sb-refresh-token')?.value || null;
   
+  console.log('SSR: Tokens found in cookies:', { 
+    hasAccessToken: !!accessToken, 
+    hasRefreshToken: !!refreshToken,
+    accessTokenLength: accessToken?.length || 0
+  });
+  
   return { accessToken, refreshToken };
 }
 
@@ -35,24 +41,65 @@ export function getSupabaseTokens(cookies: AstroCookies): {
  */
 export async function getAuthenticatedUser(cookies: AstroCookies): Promise<User | null> {
   try {
-    const { accessToken } = getSupabaseTokens(cookies);
+    const { accessToken, refreshToken } = getSupabaseTokens(cookies);
     
-    if (!accessToken) {
+    if (!accessToken || !refreshToken) {
+      console.log('SSR: No tokens found in cookies');
       return null;
     }
     
-    // Crear cliente de Supabase con el token de acceso
+    // Crear cliente de Supabase con el token en el header
     const supabase = createServerSupabaseClient(accessToken);
     
-    // Obtener el usuario actual
+    // Primero intentar validar el token usando getUser sin parámetros
+    // porque el token ya está en el header Authorization
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error('Error getting authenticated user:', authError);
-      // Limpiar cookies corruptas
-      clearAuthCookies(cookies);
-      return null;
+      console.log('SSR: Token invalid or expired, attempting refresh...');
+      
+      // Intentar refrescar el token
+      const refreshResult = await refreshAuthTokens(cookies);
+      
+      if (!refreshResult.success) {
+        console.log('SSR: Failed to refresh token, clearing cookies');
+        clearAuthCookies(cookies);
+        return null;
+      }
+      
+      // Reintentar con el token refrescado
+      const { accessToken: newAccessToken } = getSupabaseTokens(cookies);
+      if (!newAccessToken) {
+        return null;
+      }
+      
+      const newSupabase = createServerSupabaseClient(newAccessToken);
+      const { data: { user: refreshedUser }, error: refreshError } = await newSupabase.auth.getUser();
+      
+      if (refreshError || !refreshedUser) {
+        console.error('SSR: Error after token refresh:', refreshError);
+        clearAuthCookies(cookies);
+        return null;
+      }
+      
+      console.log('SSR: Token refreshed successfully for user:', refreshedUser.email);
+      
+      // Obtener datos del usuario desde la base de datos
+      const { data: userData, error: userError } = await newSupabase
+        .from('user')
+        .select('*')
+        .eq('id', refreshedUser.id)
+        .single();
+      
+      if (userError || !userData) {
+        console.error('SSR: Error getting user data after refresh:', userError);
+        return null;
+      }
+      
+      return fromSupabaseUser(userData);
     }
+    
+    console.log('SSR: Token validated successfully for user:', user.email);
     
     // Obtener datos del usuario desde la base de datos
     const { data: userData, error: userError } = await supabase
@@ -62,13 +109,14 @@ export async function getAuthenticatedUser(cookies: AstroCookies): Promise<User 
       .single();
     
     if (userError || !userData) {
-      console.error('Error getting user data:', userError);
+      console.error('SSR: Error getting user data:', userError);
       return null;
     }
     
+    console.log('SSR: User data retrieved successfully:', userData.email);
     return fromSupabaseUser(userData);
   } catch (error) {
-    console.error('Error getting authenticated user:', error);
+    console.error('SSR: Error getting authenticated user:', error);
     clearAuthCookies(cookies);
     return null;
   }
@@ -79,23 +127,73 @@ export async function getAuthenticatedUser(cookies: AstroCookies): Promise<User 
  */
 export async function getSupabaseSession(cookies: AstroCookies): Promise<AuthSession | null> {
   try {
-    const { accessToken } = getSupabaseTokens(cookies);
+    const { accessToken, refreshToken } = getSupabaseTokens(cookies);
     
-    if (!accessToken) {
+    if (!accessToken || !refreshToken) {
+      console.log('SSR: No tokens found for session');
       return null;
     }
     
     const supabase = createServerSupabaseClient(accessToken);
-    const { data: { session }, error } = await supabase.auth.getSession();
     
-    if (error || !session) {
-      console.error('Error getting session:', error);
-      return null;
+    // Validar el token usando el cliente con Authorization header
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.log('SSR: Token invalid for session, attempting refresh...');
+      
+      // Intentar refrescar el token
+      const refreshResult = await refreshAuthTokens(cookies);
+      
+      if (!refreshResult.success) {
+        console.error('SSR: Failed to refresh token for session');
+        return null;
+      }
+      
+      // Obtener los nuevos tokens después del refresh
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = getSupabaseTokens(cookies);
+      
+      if (!newAccessToken || !newRefreshToken) {
+        return null;
+      }
+      
+      // Crear sesión con los nuevos tokens
+      const newSupabase = createServerSupabaseClient(newAccessToken);
+      const { data: { user: refreshedUser }, error: refreshError } = await newSupabase.auth.getUser();
+      
+      if (refreshError || !refreshedUser) {
+        console.error('SSR: Error validating refreshed token for session');
+        return null;
+      }
+      
+      // Crear sesión con los tokens refrescados
+      const session: AuthSession = {
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        token_type: 'bearer',
+        user: refreshedUser
+      };
+      
+      console.log('SSR: Session created successfully with refreshed tokens');
+      return session;
     }
     
+    // Crear sesión con los tokens actuales
+    const session: AuthSession = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: user
+    };
+    
+    console.log('SSR: Session created successfully');
     return session;
   } catch (error) {
-    console.error('Error getting session:', error);
+    console.error('SSR: Error getting session:', error);
     return null;
   }
 }
@@ -105,7 +203,7 @@ export async function getSupabaseSession(cookies: AstroCookies): Promise<AuthSes
  */
 export async function isAuthenticated(cookies: AstroCookies): Promise<boolean> {
   const user = await getAuthenticatedUser(cookies);
-  console.log('isAuthenticated:', user);
+  console.log('SSR: isAuthenticated result:', !!user, user?.email || 'no user');
   return user !== null;
 }
 
@@ -241,20 +339,28 @@ export async function logoutUser(cookies: AstroCookies): Promise<{ success: bool
     const { accessToken } = getSupabaseTokens(cookies);
     
     if (accessToken) {
+      console.log('SSR: Logging out user...');
+      
+      // Usar el cliente con el token para cerrar sesión
       const supabase = createServerSupabaseClient(accessToken);
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Error logging out:', error);
+        console.error('SSR: Error logging out:', error);
+        // Continuar con la limpieza de cookies aunque haya error
+      } else {
+        console.log('SSR: User logged out successfully from Supabase');
       }
     }
     
-    // Limpiar cookies
+    // Limpiar cookies siempre
     clearAuthCookies(cookies);
+    console.log('SSR: Auth cookies cleared');
     
     return { success: true };
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('SSR: Logout error:', error);
+    // Limpiar cookies incluso si hay error
     clearAuthCookies(cookies);
     return { success: false, error: 'Error al cerrar sesión' };
   }
@@ -264,16 +370,24 @@ export async function logoutUser(cookies: AstroCookies): Promise<{ success: bool
  * Establecer cookies de autenticación
  */
 export function setAuthCookies(cookies: AstroCookies, session: AuthSession): void {
+  console.log('SSR: Setting auth cookies...');
+  
   cookies.set('sb-access-token', session.access_token, COOKIE_OPTIONS);
   cookies.set('sb-refresh-token', session.refresh_token, COOKIE_OPTIONS);
+  
+  console.log('SSR: Auth cookies set successfully');
 }
 
 /**
  * Limpiar cookies de autenticación
  */
 export function clearAuthCookies(cookies: AstroCookies): void {
+  console.log('SSR: Clearing auth cookies...');
+  
   cookies.delete('sb-access-token', { path: '/' });
   cookies.delete('sb-refresh-token', { path: '/' });
+  
+  console.log('SSR: Auth cookies cleared successfully');
 }
 
 /**
@@ -311,23 +425,32 @@ export async function refreshAuthTokens(cookies: AstroCookies): Promise<{ succes
     const { refreshToken } = getSupabaseTokens(cookies);
     
     if (!refreshToken) {
+      console.log('SSR: No refresh token available');
       return { success: false, error: 'No refresh token available' };
     }
     
+    console.log('SSR: Attempting to refresh tokens...');
+    
+    // Crear cliente sin token para el refresh
     const supabase = createServerSupabaseClient();
+    
+    // Refrescar la sesión
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
     
     if (error || !data.session) {
+      console.error('SSR: Error refreshing session:', error);
       clearAuthCookies(cookies);
       return { success: false, error: 'Error refreshing session' };
     }
+    
+    console.log('SSR: Tokens refreshed successfully');
     
     // Actualizar cookies con nuevos tokens
     setAuthCookies(cookies, data.session);
     
     return { success: true };
   } catch (error) {
-    console.error('Error refreshing tokens:', error);
+    console.error('SSR: Error refreshing tokens:', error);
     clearAuthCookies(cookies);
     return { success: false, error: 'Error refreshing session' };
   }
