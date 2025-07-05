@@ -3,8 +3,8 @@ import Layout from "../../layouts/Layout.astro";
 import Button from "../../components/button/Button.astro";
 import { requireAuth } from "../../utils/ssrAuthUtils";
 
-// Verificar autenticación - redirigir al login si no está autenticado
-const authCheck = requireAuth(Astro.cookies, '/auth/login');
+// Verificar autenticación - redirigir al signin si no está autenticado
+const authCheck = await requireAuth(Astro.cookies, '/signin');
 if (!authCheck.isAuthenticated) {
   return authCheck.redirectResponse;
 }
@@ -45,54 +45,28 @@ const levels = [
     icon: "🚀",
     features: ["Nuanced communication", "Academic writing", "Idioms & expressions", "Professional English"]
   },
-  {
-    id: "proficient",
-    title: "Proficient",
-    subtitle: "C1 - C2",
-    description: "I can understand virtually everything heard or read with ease.",
-    icon: "👑",
-    features: ["Native-like fluency", "Complex argumentation", "Literary analysis", "Expert communication"]
-  }
 ];
 
-// Manejar la selección del nivel (SSR)
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const selectedLevel = formData.get('level');
-  
-  if (selectedLevel) {
-    // Guardar en cookies
-    Astro.cookies.set('selectedLevel', selectedLevel, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 días
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax'
-    });
-    
-    // Redirigir a la siguiente página
-    return Astro.redirect('/onboarding/topic');
-  }
-}
-
-// Obtener el nivel seleccionado de las cookies (para mantener el estado)
-const currentLevel = Astro.cookies.get('selectedLevel')?.value;
+// Obtener el nivel actual de la URL o formulario
+const currentLevel = Astro.url.searchParams.get("level") || "";
 ---
 
 <Layout>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-    <div class="container mx-auto px-4 py-12 max-w-6xl">
-      <!-- Header Section -->
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4">
+    <div class="max-w-6xl mx-auto">
+      
+      <!-- Encabezado -->
       <div class="text-center mb-12">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
-          <span class="text-2xl">🎓</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          What's your English level?
+        <div class="text-6xl mb-6">🎯</div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+          ¡Hola, {currentUser?.name}! 👋
         </h1>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          Choose the level that best describes your current English skills. 
-          This helps us personalize your learning experience.
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">
+          ¿Cuál es tu nivel de inglés?
+        </h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Selecciona tu nivel actual para personalizar tu experiencia de aprendizaje. 
+          No te preocupes, siempre puedes cambiarlo más tarde.
         </p>
       </div>
 
@@ -140,10 +114,10 @@ const currentLevel = Astro.cookies.get('selectedLevel')?.value;
 
                 <!-- Features -->
                 <div class="space-y-2">
-                  <h4 class="text-sm font-semibold text-gray-900 mb-3">You can:</h4>
-                  <ul class="space-y-2">
+                  <h4 class="font-medium text-gray-900">You'll learn:</h4>
+                  <ul class="space-y-1">
                     {level.features.map((feature) => (
-                      <li class="flex items-center text-sm text-gray-600">
+                      <li class="text-sm text-gray-600 flex items-center">
                         <svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                         </svg>
@@ -154,12 +128,9 @@ const currentLevel = Astro.cookies.get('selectedLevel')?.value;
                 </div>
 
                 <!-- Selection Indicator -->
-                <div class="mt-6 pt-4 border-t border-gray-100">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-500">Select this level</span>
-                    <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 transition-colors relative">
-                      <div class="absolute inset-1 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
-                    </div>
+                <div class="mt-6 flex justify-center">
+                  <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center peer-checked:border-blue-500">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 absolute"></div>
                   </div>
                 </div>
               </div>
@@ -167,27 +138,27 @@ const currentLevel = Astro.cookies.get('selectedLevel')?.value;
           ))}
         </div>
 
-        <!-- Not Sure Option -->
-        <div class="max-w-2xl mx-auto mb-8">
-          <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <div class="flex items-center justify-center mb-4">
-              <span class="text-2xl">🤔</span>
+        <!-- Botón personalizado para "Not sure" -->
+        <div class="text-center mb-8">
+          <label class="level-card cursor-pointer inline-block" for="not-sure">
+            <input 
+              type="radio" 
+              name="level" 
+              id="not-sure" 
+              value="assessment"
+              class="sr-only peer"
+              checked={currentLevel === "assessment"}
+            />
+            <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 transition-all duration-300 hover:border-orange-300 hover:bg-orange-50 peer-checked:border-orange-500 peer-checked:bg-orange-50">
+              <div class="flex items-center space-x-3">
+                <div class="text-2xl">🤔</div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Not sure about your level?</h3>
+                  <p class="text-sm text-gray-600">Take a quick assessment to find out</p>
+                </div>
+              </div>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">
-              Not sure about your level?
-            </h3>
-            <p class="text-gray-600 text-center mb-4">
-              Take our quick assessment test to discover your English proficiency level.
-            </p>
-            <div class="text-center">
-              <a href="/onboarding/assessment" class="inline-flex items-center bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Take Assessment Test
-              </a>
-            </div>
-          </div>
+          </label>
         </div>
 
         <!-- Action Buttons -->
@@ -237,21 +208,9 @@ const currentLevel = Astro.cookies.get('selectedLevel')?.value;
     .level-card {
       transition: all 0.2s ease;
     }
-
+    
     .level-card:hover {
       transform: translateY(-2px);
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
     }
   </style>
 </Layout>

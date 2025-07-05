@@ -3,7 +3,7 @@ import "../styles/global.css";
 import { getAuthenticatedUser } from "../utils/ssrAuthUtils";
 
 // Obtener el usuario autenticado (si existe)
-const currentUser = getAuthenticatedUser(Astro.cookies);
+const currentUser = await getAuthenticatedUser(Astro.cookies);
 ---
 
 <!doctype html>
@@ -44,7 +44,7 @@ const currentUser = getAuthenticatedUser(Astro.cookies);
               <div class="h-6 w-px bg-gray-300"></div>
               
               <a 
-                href="/auth/logout" 
+                href="/auth/signout" 
                 class="text-sm text-gray-600 hover:text-red-600 transition-colors"
               >
                 Logout
@@ -54,8 +54,25 @@ const currentUser = getAuthenticatedUser(Astro.cookies);
         </div>
       </header>
     )}
-    
-    <slot />
+
+    <!-- Contenido principal -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- Scripts globales para autenticación -->
+    <script>
+      // Inicializar autenticación del lado cliente cuando la página carga
+      import { initAuth } from '../utils/authUtils';
+      
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          await initAuth();
+        } catch (error) {
+          console.error('Error initializing auth:', error);
+        }
+      });
+    </script>
   </body>
 </html>
 

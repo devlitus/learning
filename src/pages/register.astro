@@ -1,0 +1,294 @@
+---
+import AuthLayout from "../layouts/AuthLayout.astro";
+import Button from "../components/button/Button.astro";
+import Input from "../components/input/Input.astro";
+import Label from "../components/label/Label.astro";
+import { getSupabaseTokens } from "../utils/ssrAuthUtils";
+
+const { cookies, redirect } = Astro;
+
+// Verificar si ya está autenticado
+const { accessToken, refreshToken } = getSupabaseTokens(cookies);
+
+if (accessToken && refreshToken) {
+  return redirect("/onboarding/level");
+}
+
+// Manejo de errores desde la URL
+const error = Astro.url.searchParams.get("error");
+const message = Astro.url.searchParams.get("message");
+---
+
+<AuthLayout>
+  <div class="w-full max-w-md mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="text-4xl mb-4">🎓</div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Crea tu cuenta</h1>
+      <p class="text-gray-600">
+        Únete a nuestra plataforma de aprendizaje y comienza tu viaje
+      </p>
+    </div>
+
+    <!-- Mensajes de error/éxito -->
+    {
+      error && (
+        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-center">
+            <div class="text-red-600 mr-2">⚠️</div>
+            <p class="text-red-800">{error}</p>
+          </div>
+        </div>
+      )
+    }
+
+    {
+      message && (
+        <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center">
+            <div class="text-green-600 mr-2">✅</div>
+            <p class="text-green-800">{message}</p>
+          </div>
+        </div>
+      )
+    }
+
+    <!-- Formulario de registro -->
+    <form
+      action="/auth/register"
+      method="post"
+      class="space-y-6"
+      id="registerForm"
+    >
+      <div>
+        <Label for="name">Nombre completo</Label>
+        <Input
+          type="text"
+          name="name"
+          id="name"
+          required
+          placeholder="Tu nombre completo"
+          autocomplete="name"
+        />
+      </div>
+
+      <div>
+        <Label for="email">Correo electrónico</Label>
+        <Input
+          type="email"
+          name="email"
+          id="email"
+          required
+          placeholder="tu@email.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <div>
+        <Label for="password">Contraseña</Label>
+        <Input
+          type="password"
+          name="password"
+          id="password"
+          required
+          placeholder="••••••••"
+          autocomplete="new-password"
+        />
+        <p class="text-sm text-gray-500 mt-1">
+          Debe tener al menos 8 caracteres
+        </p>
+      </div>
+
+      <div>
+        <Label for="confirmPassword">Confirmar contraseña</Label>
+        <Input
+          type="password"
+          name="confirmPassword"
+          id="confirmPassword"
+          required
+          placeholder="••••••••"
+          autocomplete="new-password"
+        />
+      </div>
+
+      <!-- Términos y condiciones -->
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <input
+            id="terms"
+            name="terms"
+            type="checkbox"
+            required
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="terms" class="text-gray-600">
+            Acepto los
+            <a
+              href="/terms"
+              class="text-blue-600 hover:text-blue-700 underline"
+            >
+              términos y condiciones
+            </a>
+            y la
+            <a
+              href="/privacy"
+              class="text-blue-600 hover:text-blue-700 underline"
+            >
+              política de privacidad
+            </a>
+          </label>
+        </div>
+      </div>
+
+      <!-- Botón de envío -->
+      <Button
+        type="submit"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      >
+        Crear cuenta
+      </Button>
+    </form>
+
+    <!-- Enlaces adicionales -->
+    <div class="mt-6 text-center">
+      <p class="text-gray-600">
+        ¿Ya tienes una cuenta?
+        <a
+          href="/signin"
+          class="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+        >
+          Inicia sesión aquí
+        </a>
+      </p>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+      <h3 class="font-semibold text-blue-900 mb-2">🌟 ¿Por qué registrarte?</h3>
+      <ul class="text-sm text-blue-800 space-y-1">
+        <li>• Acceso a contenido personalizado</li>
+        <li>• Seguimiento de tu progreso</li>
+        <li>• Certificados de completion</li>
+        <li>• Comunidad de aprendizaje</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Scripts para validación y UX -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("registerForm");
+      const submitButton = form?.querySelector(
+        'button[type="submit"]'
+      ) as HTMLButtonElement;
+
+      if (form && submitButton) {
+        form.addEventListener("submit", (e) => {
+          // Mostrar estado de carga
+          submitButton.disabled = true;
+          submitButton.textContent = "Creando cuenta...";
+
+          // Validación básica
+          const name = form.querySelector(
+            'input[name="name"]'
+          ) as HTMLInputElement;
+          const email = form.querySelector(
+            'input[name="email"]'
+          ) as HTMLInputElement;
+          const password = form.querySelector(
+            'input[name="password"]'
+          ) as HTMLInputElement;
+          const confirmPassword = form.querySelector(
+            'input[name="confirmPassword"]'
+          ) as HTMLInputElement;
+          const terms = form.querySelector(
+            'input[name="terms"]'
+          ) as HTMLInputElement;
+
+          // Validar campos requeridos
+          if (
+            !name.value ||
+            !email.value ||
+            !password.value ||
+            !confirmPassword.value
+          ) {
+            e.preventDefault();
+            alert("Por favor, completa todos los campos");
+            resetButton();
+            return;
+          }
+
+          // Validar nombre
+          if (name.value.length < 2) {
+            e.preventDefault();
+            alert("El nombre debe tener al menos 2 caracteres");
+            resetButton();
+            return;
+          }
+
+          // Validar email
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email.value)) {
+            e.preventDefault();
+            alert("Por favor, ingresa un email válido");
+            resetButton();
+            return;
+          }
+
+          // Validar contraseña
+          if (password.value.length < 8) {
+            e.preventDefault();
+            alert("La contraseña debe tener al menos 8 caracteres");
+            resetButton();
+            return;
+          }
+
+          // Validar confirmación de contraseña
+          if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert("Las contraseñas no coinciden");
+            resetButton();
+            return;
+          }
+
+          // Validar términos
+          if (!terms.checked) {
+            e.preventDefault();
+            alert("Debes aceptar los términos y condiciones");
+            resetButton();
+            return;
+          }
+
+          function resetButton() {
+            submitButton.disabled = false;
+            submitButton.textContent = "Crear cuenta";
+          }
+        });
+
+        // Validación en tiempo real de confirmación de contraseña
+        const password = form.querySelector(
+          'input[name="password"]'
+        ) as HTMLInputElement;
+        const confirmPassword = form.querySelector(
+          'input[name="confirmPassword"]'
+        ) as HTMLInputElement;
+
+        function validatePasswordMatch() {
+          if (
+            confirmPassword.value &&
+            password.value !== confirmPassword.value
+          ) {
+            confirmPassword.setCustomValidity("Las contraseñas no coinciden");
+          } else {
+            confirmPassword.setCustomValidity("");
+          }
+        }
+
+        password.addEventListener("input", validatePasswordMatch);
+        confirmPassword.addEventListener("input", validatePasswordMatch);
+      }
+    });
+  </script>
+</AuthLayout>

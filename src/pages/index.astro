@@ -3,14 +3,14 @@ import Layout from "../layouts/Layout.astro";
 import { getAuthenticatedUser } from "../utils/ssrAuthUtils";
 
 // Verificar el estado de autenticación
-const currentUser = getAuthenticatedUser(Astro.cookies);
+const currentUser = await getAuthenticatedUser(Astro.cookies);
 
 if (currentUser) {
   // Usuario autenticado - redirigir al onboarding o dashboard
   return Astro.redirect("/onboarding/level");
 } else {
-  // Usuario no autenticado - redirigir al login
-  return Astro.redirect("/auth/login");
+  // Usuario no autenticado - redirigir al signin
+  return Astro.redirect("/signin");
 }
 ---
 
