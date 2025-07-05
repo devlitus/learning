@@ -282,21 +282,13 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
   <script>
     // @ts-nocheck
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('DOM loaded - starting initialization');
-      
+            
       const radioButtons = document.querySelectorAll('input[name="topic"]');
       const selectionStatus = document.getElementById('selection-status');
       const continueBtn = document.getElementById('continue-btn');
       const form = document.querySelector('form');
-      
-      console.log('Elements found:');
-      console.log('- radioButtons:', radioButtons.length);
-      console.log('- selectionStatus:', selectionStatus);
-      console.log('- continueBtn:', continueBtn);
-      console.log('- form:', form);
-      
+
       function updateStatus() {
-        console.log('=== updateStatus called ===');
         let selectedRadio = null;
         for (let i = 0; i < radioButtons.length; i++) {
           if (radioButtons[i].checked) {
@@ -304,7 +296,6 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             break;
           }
         }
-        console.log('selectedRadio:', selectedRadio);
         
         if (selectionStatus) {
           if (selectedRadio) {
@@ -312,22 +303,20 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             const topicName = selectedTopic.charAt(0).toUpperCase() + selectedTopic.slice(1);
             selectionStatus.textContent = topicName + ' selected';
             selectionStatus.className = 'text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full';
-            console.log('Updated status text to:', selectionStatus.textContent);
+         
           } else {
             selectionStatus.textContent = 'No topic selected';
             selectionStatus.className = 'text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full';
-            console.log('Updated status text to: No topic selected');
+         
           }
         }
         
         if (continueBtn) {
           const shouldDisable = !selectedRadio;
-          console.log('Should disable button:', shouldDisable);
-          console.log('Button disabled before:', continueBtn.disabled);
+         
           
           continueBtn.disabled = shouldDisable;
           
-          console.log('Button disabled after:', continueBtn.disabled);
           
           if (shouldDisable) {
             continueBtn.title = 'Please select a topic to continue';
@@ -335,21 +324,20 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             continueBtn.title = 'Continue to start learning';
           }
         }
-        console.log('=== updateStatus finished ===');
+       
       }
       
       // Agregar event listeners
       for (let i = 0; i < radioButtons.length; i++) {
         const radio = radioButtons[i];
-        console.log('Adding listeners to radio', i, ':', radio.value);
         
         radio.addEventListener('change', function() {
-          console.log('CHANGE event - Radio:', this.value, 'checked:', this.checked);
+         
           updateStatus();
         });
         
         radio.addEventListener('click', function() {
-          console.log('CLICK event - Radio:', this.value, 'checked:', this.checked);
+         
           setTimeout(updateStatus, 50);
         });
       }
@@ -357,7 +345,7 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
       // Manejar envío del formulario
       if (form) {
         form.addEventListener('submit', function(e) {
-          console.log('Form submit event');
+         
           let selectedRadio = null;
           for (let i = 0; i < radioButtons.length; i++) {
             if (radioButtons[i].checked) {
@@ -368,8 +356,8 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
           
           if (!selectedRadio) {
             e.preventDefault();
-            console.log('Form submission prevented - no topic selected');
-            
+         
+
             if (selectionStatus) {
               selectionStatus.textContent = 'Please select a topic to continue';
               selectionStatus.className = 'text-sm text-red-600 bg-red-100 px-3 py-1 rounded-full';
@@ -378,17 +366,17 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             return;
           }
           
-          console.log('Form submission allowed - topic selected:', selectedRadio.value);
+         
         });
       }
       
       // Actualizar estado inicial
-      console.log('Calling initial updateStatus');
+     
       updateStatus();
       
       // Verificar estado después de un momento
       setTimeout(function() {
-        console.log('=== Timeout check ===');
+       
         let selectedRadio = null;
         for (let i = 0; i < radioButtons.length; i++) {
           if (radioButtons[i].checked) {
@@ -396,8 +384,7 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             break;
           }
         }
-        console.log('selectedRadio after timeout:', selectedRadio);
-        console.log('continueBtn.disabled after timeout:', continueBtn ? continueBtn.disabled : 'button not found');
+       
       }, 2000);
     });
   </script>
