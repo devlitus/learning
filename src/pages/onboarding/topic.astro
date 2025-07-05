@@ -257,7 +257,7 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
              </p>
            </div>
           
-                     <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600" id="continue-btn" disabled>
+                     <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center" id="continue-btn" disabled>
              Start Learning
              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -298,6 +298,11 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
       function updateStatus() {
         const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
         
+        console.log('updateStatus called');
+        console.log('radioButtons found:', radioButtons.length);
+        console.log('selectedRadio:', selectedRadio);
+        console.log('continueBtn:', continueBtn);
+        
         if (selectionStatus) {
           if (selectedRadio) {
             const selectedTopic = selectedRadio.value;
@@ -315,23 +320,34 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
         }
         
         if (continueBtn) {
-          continueBtn.disabled = !selectedRadio;
+          const shouldDisable = !selectedRadio;
+          console.log('Setting button disabled to:', shouldDisable);
+          continueBtn.disabled = shouldDisable;
           
-          // Agregar/quitar clases visuales para el estado disabled
-          if (!selectedRadio) {
-            continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            continueBtn.classList.remove('hover:bg-blue-700');
+          // Solo cambiar el tooltip
+          if (shouldDisable) {
             continueBtn.title = 'Please select a topic to continue';
+            console.log('Button disabled - tooltip updated');
           } else {
-            continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            continueBtn.classList.add('hover:bg-blue-700');
             continueBtn.title = 'Continue to start learning';
+            console.log('Button enabled - tooltip updated');
           }
         }
       }
       
-      radioButtons.forEach(radio => {
-        radio.addEventListener('change', updateStatus);
+      radioButtons.forEach((radio, index) => {
+        console.log('Adding event listener to radio', index, radio.value);
+        radio.addEventListener('change', function() {
+          console.log('Radio changed:', this.value, 'checked:', this.checked);
+          updateStatus();
+        });
+        
+        // También agregar listener para click para debugging
+        radio.addEventListener('click', function() {
+          console.log('Radio clicked:', this.value, 'checked:', this.checked);
+          // Delay para asegurar que el estado se actualice
+          setTimeout(updateStatus, 10);
+        });
       });
       
       // Manejar envío del formulario para completar onboarding
@@ -374,19 +390,29 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
       }
       
       // Actualizar estado inicial
+      console.log('About to call updateStatus for the first time');
       updateStatus();
+      
+      // Verificar estado después de un momento
+      setTimeout(() => {
+        console.log('Checking state after 1 second');
+        const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+        console.log('selectedRadio after timeout:', selectedRadio);
+        console.log('continueBtn.disabled after timeout:', continueBtn?.disabled);
+        updateStatus();
+      }, 1000);
     });
   </script>
 
   <style>
     /* Estilos para el botón deshabilitado */
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    #continue-btn:disabled {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
       transform: none !important;
     }
     
-    button:disabled:hover {
+    #continue-btn:disabled:hover {
       background-color: #3b82f6 !important;
       transform: none !important;
     }
