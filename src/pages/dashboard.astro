@@ -1,0 +1,163 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getUserLevel } from "../utils/levelUtils";
+import { getAuthenticatedUser } from "../utils/serverAuth";
+import { getUserSelectedTopics } from "../utils/topicUtils";
+
+export const prerender = false;
+
+// Verificar autenticación en SSR
+const currentUser = await getAuthenticatedUser(Astro.cookies);
+
+if (!currentUser) {
+  return Astro.redirect("/signin");
+}
+
+// Obtener el nivel del usuario
+const userLevel = await getUserLevel(currentUser.id);
+
+// Obtener temas seleccionados por el usuario
+const selectedTopics = await getUserSelectedTopics(currentUser.id);
+---
+
+<Layout title="Dashboard - English Learning">
+  <div
+    class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4"
+  >
+    <div class="max-w-6xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <div class="text-6xl mb-6">🎉</div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+          ¡Bienvenido, {currentUser.name}!
+        </h1>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Tu configuración de aprendizaje ha sido completada exitosamente.
+        </p>
+      </div>
+
+      <!-- User Configuration Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <!-- Level Card -->
+        {
+          userLevel && (
+            <div class="bg-white rounded-2xl border-2 border-blue-100 shadow-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="text-3xl mr-3">{userLevel.icon}</div>
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">
+                    {userLevel.title}
+                  </h3>
+                  <p class="text-blue-600 text-sm">{userLevel.sub_title}</p>
+                </div>
+              </div>
+              <p class="text-gray-600 text-sm">{userLevel.description}</p>
+            </div>
+          )
+        }
+
+        <!-- Topics Summary -->
+        <div
+          class="bg-white rounded-2xl border-2 border-green-100 shadow-lg p-6"
+        >
+          <div class="flex items-center mb-4">
+            <div class="text-3xl mr-3">🎯</div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">
+                Temas Seleccionados
+              </h3>
+              <p class="text-green-600 text-sm">
+                {selectedTopics.length} temas de interés
+              </p>
+            </div>
+          </div>
+          <div class="space-y-2">
+            {
+              selectedTopics.slice(0, 3).map((topic) => (
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                  <span class="text-sm text-gray-700">{topic.name}</span>
+                </div>
+              ))
+            }
+            {
+              selectedTopics.length > 3 && (
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-gray-400 rounded-full mr-2" />
+                  <span class="text-sm text-gray-500">
+                    +{selectedTopics.length - 3} más
+                  </span>
+                </div>
+              )
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div
+          class="bg-white rounded-xl border border-gray-200 p-6 text-center hover:shadow-lg transition-shadow"
+        >
+          <div class="text-3xl mb-4">📚</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">
+            Empezar Lecciones
+          </h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Comienza tu primera lección personalizada
+          </p>
+          <button
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Comenzar
+          </button>
+        </div>
+
+        <div
+          class="bg-white rounded-xl border border-gray-200 p-6 text-center hover:shadow-lg transition-shadow"
+        >
+          <div class="text-3xl mb-4">⚙️</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">
+            Configuración
+          </h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Ajusta tu nivel y temas de interés
+          </p>
+          <a
+            href="/onboarding/level"
+            class="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Modificar
+          </a>
+        </div>
+
+        <div
+          class="bg-white rounded-xl border border-gray-200 p-6 text-center hover:shadow-lg transition-shadow"
+        >
+          <div class="text-3xl mb-4">👤</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Perfil</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Gestiona tu cuenta y progreso
+          </p>
+          <button
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Ver Perfil
+          </button>
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <div class="text-center">
+        <form action="/auth/signout" method="POST" class="inline">
+          <button
+            type="submit"
+            class="text-red-600 hover:text-red-800 underline"
+          >
+            Cerrar Sesión
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</Layout>
