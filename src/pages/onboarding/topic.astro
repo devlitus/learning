@@ -217,10 +217,20 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
                     ))}
                   </ul>
                 </div>
+                <div class="mt-6 pt-4 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Select this level</span>
+                    <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 transition-colors relative">
+                      <div class="absolute inset-1 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </label>
+            
           ))}
         </div>
+        
 
                  <!-- Selection Summary -->
          <div class="max-w-2xl mx-auto mb-8">
@@ -255,9 +265,9 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
              <p class="text-sm text-gray-500">
                Topic can be changed later in your dashboard
              </p>
-           </div>
+           </div> 
           
-                     <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center" id="continue-btn" disabled>
+            <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center" id="continue-btn" disabled>
              Start Learning
              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -268,139 +278,127 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
     </div>
   </div>
 
-  <!-- JavaScript para interactividad del selector y store -->
-  <script type="module">
-    import { userPreferencesStore } from '../../store/userPreferencesStore.js';
-    
+  <!-- JavaScript para interactividad del selector (versión simplificada) -->
+  <script>
+    // @ts-nocheck
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded - starting initialization');
+      
       const radioButtons = document.querySelectorAll('input[name="topic"]');
       const selectionStatus = document.getElementById('selection-status');
       const continueBtn = document.getElementById('continue-btn');
       const form = document.querySelector('form');
       
-      // Inicializar el store de preferencias
-      userPreferencesStore.getState().initialize();
-      
-      // Obtener cookies para el nivel seleccionado
-      function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-        return null;
-      }
-      
-      // Guardar el nivel en el store si existe en cookies
-      const selectedLevel = getCookie('selectedLevel');
-      if (selectedLevel) {
-        userPreferencesStore.getState().setLevel(selectedLevel);
-      }
+      console.log('Elements found:');
+      console.log('- radioButtons:', radioButtons.length);
+      console.log('- selectionStatus:', selectionStatus);
+      console.log('- continueBtn:', continueBtn);
+      console.log('- form:', form);
       
       function updateStatus() {
-        const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
-        
-        console.log('updateStatus called');
-        console.log('radioButtons found:', radioButtons.length);
+        console.log('=== updateStatus called ===');
+        let selectedRadio = null;
+        for (let i = 0; i < radioButtons.length; i++) {
+          if (radioButtons[i].checked) {
+            selectedRadio = radioButtons[i];
+            break;
+          }
+        }
         console.log('selectedRadio:', selectedRadio);
-        console.log('continueBtn:', continueBtn);
         
         if (selectionStatus) {
           if (selectedRadio) {
             const selectedTopic = selectedRadio.value;
-            // Capitalizar la primera letra del topic
             const topicName = selectedTopic.charAt(0).toUpperCase() + selectedTopic.slice(1);
-            selectionStatus.textContent = `${topicName} selected`;
+            selectionStatus.textContent = topicName + ' selected';
             selectionStatus.className = 'text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full';
-            
-            // Guardar el topic en el store
-            userPreferencesStore.getState().setTopic(selectedTopic);
+            console.log('Updated status text to:', selectionStatus.textContent);
           } else {
             selectionStatus.textContent = 'No topic selected';
             selectionStatus.className = 'text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full';
+            console.log('Updated status text to: No topic selected');
           }
         }
         
         if (continueBtn) {
           const shouldDisable = !selectedRadio;
-          console.log('Setting button disabled to:', shouldDisable);
+          console.log('Should disable button:', shouldDisable);
+          console.log('Button disabled before:', continueBtn.disabled);
+          
           continueBtn.disabled = shouldDisable;
           
-          // Solo cambiar el tooltip
+          console.log('Button disabled after:', continueBtn.disabled);
+          
           if (shouldDisable) {
             continueBtn.title = 'Please select a topic to continue';
-            console.log('Button disabled - tooltip updated');
           } else {
             continueBtn.title = 'Continue to start learning';
-            console.log('Button enabled - tooltip updated');
           }
         }
+        console.log('=== updateStatus finished ===');
       }
       
-      radioButtons.forEach((radio, index) => {
-        console.log('Adding event listener to radio', index, radio.value);
+      // Agregar event listeners
+      for (let i = 0; i < radioButtons.length; i++) {
+        const radio = radioButtons[i];
+        console.log('Adding listeners to radio', i, ':', radio.value);
+        
         radio.addEventListener('change', function() {
-          console.log('Radio changed:', this.value, 'checked:', this.checked);
+          console.log('CHANGE event - Radio:', this.value, 'checked:', this.checked);
           updateStatus();
         });
         
-        // También agregar listener para click para debugging
         radio.addEventListener('click', function() {
-          console.log('Radio clicked:', this.value, 'checked:', this.checked);
-          // Delay para asegurar que el estado se actualice
-          setTimeout(updateStatus, 10);
+          console.log('CLICK event - Radio:', this.value, 'checked:', this.checked);
+          setTimeout(updateStatus, 50);
         });
-      });
+      }
       
-      // Manejar envío del formulario para completar onboarding
+      // Manejar envío del formulario
       if (form) {
         form.addEventListener('submit', function(e) {
-          const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+          console.log('Form submit event');
+          let selectedRadio = null;
+          for (let i = 0; i < radioButtons.length; i++) {
+            if (radioButtons[i].checked) {
+              selectedRadio = radioButtons[i];
+              break;
+            }
+          }
           
-          // Prevenir envío si no hay topic seleccionado
           if (!selectedRadio) {
             e.preventDefault();
+            console.log('Form submission prevented - no topic selected');
             
-            // Mostrar mensaje de error
             if (selectionStatus) {
               selectionStatus.textContent = 'Please select a topic to continue';
               selectionStatus.className = 'text-sm text-red-600 bg-red-100 px-3 py-1 rounded-full';
             }
             
-            // Hacer scroll a la sección de selección
-            document.querySelector('.grid').scrollIntoView({ behavior: 'smooth' });
             return;
           }
           
-          if (selectedRadio && selectedLevel) {
-            try {
-              // Completar el onboarding en el store
-              userPreferencesStore.getState().completeOnboarding();
-              console.log('Onboarding completed successfully!');
-              
-              // Mostrar mensaje de éxito
-              if (selectionStatus) {
-                selectionStatus.textContent = 'Preferences saved successfully!';
-                selectionStatus.className = 'text-sm text-green-600 bg-green-100 px-3 py-1 rounded-full';
-              }
-            } catch (error) {
-              console.error('Error completing onboarding:', error);
-              // El formulario aún se enviará normalmente
-            }
-          }
+          console.log('Form submission allowed - topic selected:', selectedRadio.value);
         });
       }
       
       // Actualizar estado inicial
-      console.log('About to call updateStatus for the first time');
+      console.log('Calling initial updateStatus');
       updateStatus();
       
       // Verificar estado después de un momento
-      setTimeout(() => {
-        console.log('Checking state after 1 second');
-        const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+      setTimeout(function() {
+        console.log('=== Timeout check ===');
+        let selectedRadio = null;
+        for (let i = 0; i < radioButtons.length; i++) {
+          if (radioButtons[i].checked) {
+            selectedRadio = radioButtons[i];
+            break;
+          }
+        }
         console.log('selectedRadio after timeout:', selectedRadio);
-        console.log('continueBtn.disabled after timeout:', continueBtn?.disabled);
-        updateStatus();
-      }, 1000);
+        console.log('continueBtn.disabled after timeout:', continueBtn ? continueBtn.disabled : 'button not found');
+      }, 2000);
     });
   </script>
 
