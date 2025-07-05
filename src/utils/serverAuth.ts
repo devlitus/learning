@@ -23,16 +23,6 @@ const COOKIE_OPTIONS = {
 };
 
 /**
- * Inicializar autenticación del lado cliente
- * Esta función puede ser llamada desde el navegador
- */
-export async function initAuth(): Promise<void> {
-  console.log('[AUTH] Initializing client-side authentication');
-  // En el lado cliente, no necesitamos hacer mucho
-  // La autenticación se maneja principalmente server-side
-}
-
-/**
  * Establecer tokens de autenticación en cookies
  */
 export function setAuthTokens(
@@ -40,22 +30,11 @@ export function setAuthTokens(
   accessToken: string, 
   refreshToken: string
 ): void {
-  console.log('[AUTH] Setting auth tokens in cookies');
-  console.log('[AUTH] Cookie options:', COOKIE_OPTIONS);
-  
+    
   cookies.set('sb-access-token', accessToken, COOKIE_OPTIONS);
   cookies.set('sb-refresh-token', refreshToken, COOKIE_OPTIONS);
   
-  // Verificar inmediatamente
-  const verifyAccess = cookies.get('sb-access-token')?.value;
-  const verifyRefresh = cookies.get('sb-refresh-token')?.value;
-  
-  console.log('[AUTH] Verification after setting:', {
-    accessSet: !!verifyAccess,
-    refreshSet: !!verifyRefresh,
-    accessLength: verifyAccess?.length || 0,
-    refreshLength: verifyRefresh?.length || 0
-  });
+    
 }
 
 /**
@@ -66,15 +45,7 @@ export function getAuthTokens(cookies: AstroCookies): {
   refreshToken: string | null;
 } {
   const accessToken = cookies.get('sb-access-token')?.value || null;
-  const refreshToken = cookies.get('sb-refresh-token')?.value || null;
-  
-  console.log('[AUTH] Reading tokens from cookies:', {
-    hasAccessToken: !!accessToken,
-    hasRefreshToken: !!refreshToken,
-    accessTokenLength: accessToken?.length || 0,
-    refreshTokenLength: refreshToken?.length || 0
-  });
-  
+  const refreshToken = cookies.get('sb-refresh-token')?.value || null;  
   return { accessToken, refreshToken };
 }
 
@@ -82,7 +53,6 @@ export function getAuthTokens(cookies: AstroCookies): {
  * Limpiar tokens de autenticación
  */
 export function clearAuthTokens(cookies: AstroCookies): void {
-  console.log('[AUTH] Clearing auth tokens');
   cookies.delete('sb-access-token', { path: '/' });
   cookies.delete('sb-refresh-token', { path: '/' });
 }
@@ -95,7 +65,7 @@ export async function getAuthenticatedUser(cookies: AstroCookies): Promise<Simpl
     const { accessToken, refreshToken } = getAuthTokens(cookies);
     
     if (!accessToken || !refreshToken) {
-      console.log('[AUTH] No tokens found, user not authenticated');
+     
       return null;
     }
     
@@ -105,7 +75,7 @@ export async function getAuthenticatedUser(cookies: AstroCookies): Promise<Simpl
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      console.log('[AUTH] Token invalid or expired:', error?.message);
+     
       clearAuthTokens(cookies);
       return null;
     }
@@ -122,7 +92,6 @@ export async function getAuthenticatedUser(cookies: AstroCookies): Promise<Simpl
       return null;
     }
     
-    console.log('[AUTH] User authenticated successfully:', userData.email);
     return {
       id: userData.id,
       name: userData.name || '',

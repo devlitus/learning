@@ -31,10 +31,5 @@ export const createServerSupabaseClient = (accessToken?: string) => {
     }
   });
 
-  console.log('SSR: Created Supabase client', { 
-    hasToken: !!accessToken, 
-    tokenLength: accessToken?.length || 0 
-  });
-
   return client;
 };
