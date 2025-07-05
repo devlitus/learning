@@ -1,6 +1,16 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import Button from "../../components/button/Button.astro";
+import { requireAuth } from "../../utils/ssrAuthUtils";
+
+// Verificar autenticación - redirigir al login si no está autenticado
+const authCheck = requireAuth(Astro.cookies, '/auth/login');
+if (!authCheck.isAuthenticated) {
+  return authCheck.redirectResponse;
+}
+
+// El usuario está autenticado, continúa con la lógica normal
+const currentUser = authCheck.user;
 
 const levels = [
   {

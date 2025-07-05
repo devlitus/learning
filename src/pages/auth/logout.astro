@@ -1,0 +1,9 @@
+---
+import { logoutUser } from "../../utils/ssrAuthUtils";
+
+// Manejar logout inmediatamente cuando se accede a la página
+logoutUser(Astro.cookies);
+
+// Redirigir a la página de login después del logout
+return Astro.redirect("/auth/login");
+---

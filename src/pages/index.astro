@@ -1,8 +1,25 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Login from "./auth/login.astro";
+import { getAuthenticatedUser } from "../utils/ssrAuthUtils";
+
+// Verificar el estado de autenticación
+const currentUser = getAuthenticatedUser(Astro.cookies);
+
+if (currentUser) {
+  // Usuario autenticado - redirigir al onboarding o dashboard
+  return Astro.redirect("/onboarding/level");
+} else {
+  // Usuario no autenticado - redirigir al login
+  return Astro.redirect("/auth/login");
+}
 ---
 
+<!-- Este contenido nunca se renderizará porque siempre redirigimos -->
 <Layout>
-  <Login />
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">Learning Platform</h1>
+      <p class="text-gray-600">Redirecting...</p>
+    </div>
+  </div>
 </Layout>

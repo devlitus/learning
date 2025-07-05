@@ -1,5 +1,9 @@
 ---
 import "../styles/global.css";
+import { getAuthenticatedUser } from "../utils/ssrAuthUtils";
+
+// Obtener el usuario autenticado (si existe)
+const currentUser = getAuthenticatedUser(Astro.cookies);
 ---
 
 <!doctype html>
@@ -9,9 +13,48 @@ import "../styles/global.css";
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>Astro Basics</title>
+    <title>Learning Platform</title>
   </head>
   <body>
+    <!-- Header con navegación -->
+    {currentUser && (
+      <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="container mx-auto px-4 py-4">
+          <div class="flex items-center justify-between">
+            <!-- Logo/Brand -->
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">📚</span>
+              <span class="text-xl font-bold text-gray-900">Learning Platform</span>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="text-sm font-medium text-blue-600">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">{currentUser.name}</div>
+                  <div class="text-gray-500">{currentUser.email}</div>
+                </div>
+              </div>
+              
+              <div class="h-6 w-px bg-gray-300"></div>
+              
+              <a 
+                href="/auth/logout" 
+                class="text-sm text-gray-600 hover:text-red-600 transition-colors"
+              >
+                Logout
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+    )}
+    
     <slot />
   </body>
 </html>
