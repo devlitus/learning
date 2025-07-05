@@ -105,6 +105,7 @@ export async function getSupabaseSession(cookies: AstroCookies): Promise<AuthSes
  */
 export async function isAuthenticated(cookies: AstroCookies): Promise<boolean> {
   const user = await getAuthenticatedUser(cookies);
+  console.log('isAuthenticated:', user);
   return user !== null;
 }
 

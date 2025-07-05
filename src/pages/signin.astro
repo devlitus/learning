@@ -59,25 +59,27 @@ const message = Astro.url.searchParams.get("message");
     <form action="/auth/signin" method="post" class="space-y-6">
       <div>
         <Label for="email">Correo electrónico</Label>
-        <Input
+        <input
           type="email"
           name="email"
           id="email"
           required
           placeholder="tu@email.com"
           autocomplete="email"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
       </div>
 
       <div>
         <Label for="password">Contraseña</Label>
-        <Input
+        <input
           type="password"
           name="password"
           id="password"
           required
           placeholder="••••••••"
           autocomplete="current-password"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
       </div>
 

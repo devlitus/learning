@@ -34,8 +34,7 @@ export const fromSupabaseUser = (supabaseUser: SupabaseUser): User => {
   return userSchema.parse({
     id: supabaseUser.id,
     email: supabaseUser.email,
-    name: supabaseUser.name,
-    password: supabaseUser.password,
+    name: supabaseUser.name,  
   });
 };
 
@@ -45,6 +44,5 @@ export const toSupabaseUser = (user: User): SupabaseUser => {
     id: user.id,
     email: user.email,
     name: user.name,
-    password: user.password,
   };
 };

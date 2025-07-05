@@ -1,16 +1,5 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import Button from "../../components/button/Button.astro";
-import { requireAuth } from "../../utils/ssrAuthUtils";
-
-// Verificar autenticación - redirigir al signin si no está autenticado
-const authCheck = await requireAuth(Astro.cookies, '/signin');
-if (!authCheck.isAuthenticated) {
-  return authCheck.redirectResponse;
-}
-
-// El usuario está autenticado, continúa con la lógica normal
-const currentUser = authCheck.user;
 
 const levels = [
   {
@@ -59,7 +48,7 @@ const currentLevel = Astro.url.searchParams.get("level") || "";
       <div class="text-center mb-12">
         <div class="text-6xl mb-6">🎯</div>
         <h1 class="text-4xl font-bold text-gray-900 mb-4">
-          ¡Hola, {currentUser?.name}! 👋
+          ¡Hola, ! 👋
         </h1>
         <h2 class="text-3xl font-bold text-gray-900 mb-4">
           ¿Cuál es tu nivel de inglés?

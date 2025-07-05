@@ -9,9 +9,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const formData = await request.formData();
     const email = formData.get("email")?.toString();
     const password = formData.get("password")?.toString();
+    console.log("[SIGNIN] Paso 1: Datos recibidos", { email, password });
 
     // Validar campos requeridos
     if (!email || !password) {
+      console.log("[SIGNIN] Paso 2: Faltan campos requeridos");
       return redirect("/signin?error=" + encodeURIComponent("Correo electrónico y contraseña obligatorios"));
     }
 
@@ -20,9 +22,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       email,
       password,
     });
-
     if (!validationResult.success) {
       const errors = validationResult.error.issues.map(issue => issue.message).join(", ");
+      console.log("[SIGNIN] Paso 3: Error de validación Zod", errors);
       return redirect("/signin?error=" + encodeURIComponent(errors));
     }
 
@@ -31,13 +33,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       email,
       password,
     });
+    console.log("[SIGNIN] Paso 4: Resultado de signInWithPassword", { data, error });
 
     if (error) {
-      console.error("Error en inicio de sesión:", error);
-      
-      // Manejar diferentes tipos de errores
+      console.error("[SIGNIN] Paso 5: Error en inicio de sesión:", error);
       let errorMessage = "Error al iniciar sesión";
-      
       if (error.message.includes("Invalid login credentials")) {
         errorMessage = "Credenciales inválidas. Verifica tu email y contraseña.";
       } else if (error.message.includes("Email not confirmed")) {
@@ -47,11 +47,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       } else {
         errorMessage = error.message;
       }
-      
       return redirect("/signin?error=" + encodeURIComponent(errorMessage));
     }
 
     if (!data.user || !data.session) {
+      console.log("[SIGNIN] Paso 6: No se obtuvo user o session de Supabase");
       return redirect("/signin?error=" + encodeURIComponent("Error al procesar el inicio de sesión"));
     }
 
@@ -61,9 +61,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       .select('id, name, email')
       .eq('id', data.user.id)
       .single();
+    console.log("[SIGNIN] Paso 7: Resultado de consulta a tabla user", { userData, userError });
 
     if (userError || !userData) {
-      console.error("Error obteniendo datos del usuario:", userError);
+      console.error("[SIGNIN] Paso 8: Error obteniendo datos del usuario:", userError);
       return redirect("/signin?error=" + encodeURIComponent("Error al obtener los datos del usuario"));
     }
 
@@ -75,15 +76,16 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const
     };
-
     cookies.set("sb-access-token", data.session.access_token, cookieOptions);
     cookies.set("sb-refresh-token", data.session.refresh_token, cookieOptions);
-    
+    console.log("[SIGNIN] Paso 9: Tokens guardados en cookies");
+
     // Redirigir al onboarding
+    console.log("[SIGNIN] Paso 10: Redirigiendo a /onboarding/level");
     return redirect("/onboarding/level");
 
   } catch (error) {
-    console.error("Error en el endpoint de signin:", error);
+    console.error("[SIGNIN] Paso 11: Error en el endpoint de signin:", error);
     return redirect("/signin?error=" + encodeURIComponent("Error interno del servidor"));
   }
 };
