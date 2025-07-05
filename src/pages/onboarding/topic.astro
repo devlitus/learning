@@ -1,45 +1,120 @@
 ---
+import Button from "../../components/button/Button.astro";
 import Layout from "../../layouts/Layout.astro";
+import { getAuthenticatedUser, getAuthTokens } from "../../utils/serverAuth";
+import { getTopicCategoriesWithTopics, getUserSelectedTopics, saveUserTopicSelections } from "../../utils/topicUtils";
+import { getLevelById } from "../../utils/levelUtils";
 
-// Obtener el nivel seleccionado de las cookies
-const selectedLevel = Astro.cookies.get("selectedLevel")?.value;
+export const prerender = false;
 
-// Información de los niveles para mostrar
-const levelInfo = {
-  beginner: { title: "Beginner", subtitle: "A1 - A2", icon: "🌱" },
-  elementary: { title: "Elementary", subtitle: "A2 - B1", icon: "📚" },
-  intermediate: { title: "Intermediate", subtitle: "B1 - B2", icon: "🎯" },
-  advanced: { title: "Advanced", subtitle: "B2 - C1", icon: "🚀" },
-  proficient: { title: "Proficient", subtitle: "C1 - C2", icon: "👑" },
-} as const;
+// Verificar autenticación en SSR
+const currentUser = await getAuthenticatedUser(Astro.cookies);
 
-type LevelKey = keyof typeof levelInfo;
+if (!currentUser) {
+  return Astro.redirect("/signin");
+}
 
-const currentLevelInfo =
-  selectedLevel && selectedLevel in levelInfo
-    ? levelInfo[selectedLevel as LevelKey]
-    : null;
+// Obtener el nivel desde la URL o cookies
+const selectedLevel = Astro.url.searchParams.get("level") || Astro.cookies.get("selectedLevel")?.value;
+
+if (!selectedLevel) {
+  return Astro.redirect("/onboarding/level");
+}
+
+// Obtener información del nivel seleccionado
+const currentLevelInfo = await getLevelById(parseInt(selectedLevel));
+
+// Obtener categorías y temas desde Supabase
+const topicCategories = await getTopicCategoriesWithTopics();
+
+// Obtener temas previamente seleccionados por el usuario (si existen)
+const userSelectedTopics = await getUserSelectedTopics(currentUser.id);
+const selectedTopicIds = userSelectedTopics.map(topic => topic.topic_id);
+
+// Manejar el envío del formulario POST
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const selectedTopics = formData.getAll("topics");
+    
+    if (selectedTopics.length === 0) {
+      console.error("SSR: No topics selected");
+      return Astro.redirect("/onboarding/topic?level=" + selectedLevel + "&error=no-topics");
+    }
+    
+    console.log("SSR: Topics selected:", selectedTopics);
+    console.log("SSR: Level:", selectedLevel);
+    
+    // Guardar los temas seleccionados
+    const levelInfo = await getLevelById(parseInt(selectedLevel));
+    const authTokens = await getAuthTokens(Astro.cookies);
+    const success = await saveUserTopicSelections(
+      currentUser.id, 
+      selectedTopics as string[], 
+      levelInfo?.id,
+      authTokens.accessToken || undefined
+    );
+    
+    if (!success) {
+      console.error("SSR: Failed to save topic selections");
+      return Astro.redirect("/onboarding/topic?level=" + selectedLevel + "&error=save-failed");
+    }
+    
+    console.log("SSR: Topics saved successfully");
+    
+    // Redirigir al dashboard o página principal
+    return Astro.redirect("/dashboard");
+    
+  } catch (error) {
+    console.error("SSR: Error processing topics form:", error);
+    return Astro.redirect("/onboarding/topic?level=" + selectedLevel + "&error=processing");
+  }
+}
+
+console.log("SSR: Topic page - User:", currentUser.name, "Level:", selectedLevel);
+console.log("SSR: Found", topicCategories.length, "topic categories");
+console.log("SSR: User has", selectedTopicIds.length, "previously selected topics");
+
+// Obtener errores de la URL si los hay
+const error = Astro.url.searchParams.get("error");
 ---
 
 <Layout>
-  <div
-    class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"
-  >
-    <div class="container mx-auto px-4 py-12 max-w-4xl">
-      <!-- Header Section -->
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4">
+    <div class="max-w-6xl mx-auto">
+      
+      <!-- Encabezado -->
       <div class="text-center mb-12">
-        <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6"
-        >
-          <span class="text-2xl">🎯</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          What topics interest you?
+        <div class="text-6xl mb-6">🎯</div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+          ¡Perfecto, {currentUser.name}! 🎉
         </h1>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          Select the topics you'd like to focus on in your English learning
-          journey.
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">
+          ¿Qué temas te interesan?
+        </h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Selecciona los temas en los que te gustaría enfocarte para personalizar tu experiencia de aprendizaje.
         </p>
+        
+        <!-- Mostrar errores si los hay -->
+        {error && (
+          <div class="mt-6 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-800">
+                  {error === "no-topics" && "Por favor selecciona al menos un tema antes de continuar."}
+                  {error === "processing" && "Hubo un error al procesar tu selección. Inténtalo de nuevo."}
+                  {error === "save-failed" && "No se pudieron guardar tus selecciones. Inténtalo de nuevo."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <!-- Progress Indicator -->
@@ -52,121 +127,188 @@ const currentLevelInfo =
       </div>
 
       <!-- Nivel seleccionado -->
-      {
-        currentLevelInfo && (
-          <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-center mb-4">
-              <div class="text-3xl mr-3">{currentLevelInfo.icon}</div>
-              <div class="text-center">
-                <h2 class="text-xl font-bold text-gray-900">
-                  Selected Level: {currentLevelInfo.title}
-                </h2>
-                <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  {currentLevelInfo.subtitle}
-                </span>
+      {currentLevelInfo && (
+        <div class="bg-white rounded-2xl border-2 border-blue-100 shadow-lg p-6 mb-8">
+          <div class="flex items-center justify-center mb-4">
+            <div class="text-3xl mr-3">{currentLevelInfo.icon}</div>
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-900">
+                Nivel seleccionado: {currentLevelInfo.title}
+              </h2>
+              <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                {currentLevelInfo.sub_title}
+              </span>
+            </div>
+          </div>
+          <p class="text-gray-600 text-center">
+            ¡Excelente! Tu nivel de inglés ha sido configurado. Ahora elige los temas que más te interesen.
+          </p>
+        </div>
+      )}
+
+      <!-- Formulario de selección de temas -->
+      <form method="POST" class="space-y-8">
+        <!-- Topics Grid -->
+        <div class="space-y-8">
+          {topicCategories.map((category) => (
+            <div class="bg-white rounded-2xl border-2 border-gray-100 p-6 shadow-lg">
+              <!-- Category Header -->
+              <div class="flex items-center mb-6">
+                <div class="text-3xl mr-4">{category.icon}</div>
+                <div>
+                  <h3 class="text-2xl font-bold text-gray-900">{category.title}</h3>
+                  <p class="text-gray-600">{category.description}</p>
+                </div>
+              </div>
+
+              <!-- Topics in this category -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {category.topics.map((topic) => (
+                  <label class="topic-card cursor-pointer" for={topic.topic_id}>
+                    <input 
+                      type="checkbox" 
+                      name="topics" 
+                      id={topic.topic_id} 
+                      value={topic.topic_id}
+                      class="sr-only peer"
+                      checked={selectedTopicIds.includes(topic.topic_id)}
+                    />
+                    <div class="bg-gray-50 rounded-xl border-2 border-gray-200 p-4 h-full transition-all duration-300 hover:border-blue-300 hover:bg-blue-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-md">
+                      <!-- Topic content -->
+                      <div class="flex items-start space-x-3">
+                        <!-- Checkbox indicator -->
+                        <div class="flex-shrink-0 mt-1">
+                          <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center peer-checked:border-blue-500 peer-checked:bg-blue-500">
+                            <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                          </div>
+                        </div>
+                        
+                        <!-- Topic info -->
+                        <div class="flex-1">
+                          <h4 class="font-semibold text-gray-900 mb-1 peer-checked:text-blue-600 transition-colors">
+                            {topic.name}
+                          </h4>
+                          <p class="text-sm text-gray-600 leading-relaxed">
+                            {topic.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
-            <p class="text-gray-600 text-center">
-              Great! Your English level has been set. Now let's choose your
-              learning topics.
+          ))}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-12">
+          <a href={`/onboarding/level?level=${selectedLevel}`} class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Volver al Nivel
+          </a>
+          
+          <div class="text-center flex-1">
+            <p class="text-sm text-gray-500">
+              Puedes cambiar tus temas de interés más tarde en tu perfil
             </p>
           </div>
-        )
-      }
-
-      <!-- Contenido temporal -->
-      <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">
-          ✅ SSR Navigation Working!
-        </h2>
-        <p class="text-gray-600 mb-6">
-          You successfully navigated using Server-Side Rendering.
-          {
-            selectedLevel
-              ? `Your selected level (${selectedLevel}) was saved in cookies.`
-              : "No level was selected."
-          }
-        </p>
-
-        <div class="space-y-4">
-          <p class="text-sm text-gray-500">This page demonstrates that:</p>
-          <ul class="text-left max-w-md mx-auto space-y-2">
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Form submission works server-side
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Cookies are saved and retrieved
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              Server-side redirection works
-            </li>
-            <li class="flex items-center text-sm text-gray-600">
-              <svg
-                class="w-4 h-4 text-green-500 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clip-rule="evenodd"></path>
-              </svg>
-              No client-side JavaScript needed
-            </li>
-          </ul>
-        </div>
-
-        <div class="mt-8">
-          <a
-            href="/onboarding/level"
-            class="inline-flex items-center bg-blue-600 text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded transition-all duration-200 mr-4"
+          
+          <Button 
+            type="submit" 
+            id="finish-btn"
+            class="finish-button w-full sm:w-auto font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
           >
-            <svg
-              class="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"></path>
+            Finalizar Configuración
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            Back to Level Selection
-          </a>
+          </Button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 </Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const checkedBoxes = document.querySelectorAll('input[name="topics"]:checked');
+        
+        if (checkedBoxes.length === 0) {
+          e.preventDefault();
+          alert('Por favor selecciona al menos un tema antes de continuar.');
+          return false;
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  /* Estilos para el botón Finish basado en selección */
+  .finish-button {
+    background-color: #9ca3af;
+    color: white;
+    cursor: not-allowed;
+  }
+  
+  form:has(input[name="topics"]:checked) .finish-button {
+    background-color: #2563eb;
+    color: white;
+    cursor: pointer;
+  }
+  
+  form:has(input[name="topics"]:checked) .finish-button:hover {
+    background-color: #1d4ed8;
+  }
+  
+  /* Estilos para las topic cards */
+  .topic-card input[type="checkbox"]:checked + div {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+  
+  .topic-card input[type="checkbox"]:checked + div h4 {
+    color: #3b82f6;
+  }
+
+  .topic-card input[type="checkbox"]:checked + div .w-5 {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+  }
+
+  .topic-card input[type="checkbox"]:checked + div .w-5 svg {
+    opacity: 1;
+  }
+
+  .topic-card {
+    transition: all 0.2s ease;
+  }
+  
+  .topic-card:hover {
+    transform: translateY(-1px);
+  }
+  
+  .topic-card:hover > div {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Animación suave para las categorías */
+  .bg-white {
+    transition: all 0.3s ease;
+  }
+  
+  .bg-white:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+</style>
