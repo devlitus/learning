@@ -6,7 +6,7 @@ export const userPreferencesSchema = z.object({
 }).strict();
 
 export const userSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   email: z.string().email(),
   name: z.string().min(2).max(100),
 });

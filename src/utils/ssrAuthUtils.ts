@@ -16,26 +16,16 @@ const COOKIE_OPTIONS = {
 };
 
 /**
- * Simular base de datos de usuarios (en una aplicación real esto sería una base de datos)
+ * Usuario único de prueba para la aplicación
  */
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'admin@example.com',
-    name: 'Administrator'
-  },
-  {
-    id: '2', 
-    email: 'user@example.com',
-    name: 'Test User'
-  }
-];
-
-// Simular contraseñas (en una aplicación real estarían hasheadas)
-const MOCK_PASSWORDS: Record<string, string> = {
-  'admin@example.com': 'password123',
-  'user@example.com': 'password123'
+const TEST_USER: User = {
+  id: 'test-user-001',
+  email: 'test@example.com',
+  name: 'Test User'
 };
+
+// Credenciales del usuario de prueba
+const TEST_PASSWORD = '12345678';
 
 /**
  * Obtener usuario autenticado desde cookies
@@ -49,6 +39,8 @@ export function getAuthenticatedUser(cookies: AstroCookies): User | null {
     return userSchema.parse(parsedUser);
   } catch (error) {
     console.error('Error parsing user from cookies:', error);
+    // Limpiar cookies corruptas
+    cookies.delete('auth-user', { path: '/' });
     return null;
   }
 }
@@ -71,21 +63,19 @@ export async function authenticateUser(
     // Validar credenciales
     const validatedCredentials = authCredentialSchema.parse(credentials);
     
-    // Verificar credenciales contra la "base de datos" mock
-    const user = MOCK_USERS.find(u => u.email === validatedCredentials.email);
-    if (!user) {
+    // Verificar credenciales contra el usuario de prueba
+    if (validatedCredentials.email !== TEST_USER.email) {
       return { success: false, error: 'Usuario no encontrado' };
     }
     
-    const correctPassword = MOCK_PASSWORDS[validatedCredentials.email];
-    if (correctPassword !== validatedCredentials.password) {
+    if (validatedCredentials.password !== TEST_PASSWORD) {
       return { success: false, error: 'Contraseña incorrecta' };
     }
     
     // Guardar usuario en cookies
-    cookies.set('auth-user', JSON.stringify(user), COOKIE_OPTIONS);
+    cookies.set('auth-user', JSON.stringify(TEST_USER), COOKIE_OPTIONS);
     
-    return { success: true, user };
+    return { success: true, user: TEST_USER };
   } catch (error) {
     console.error('Authentication error:', error);
     
@@ -98,64 +88,17 @@ export async function authenticateUser(
 }
 
 /**
- * Registrar nuevo usuario
+ * Registrar nuevo usuario (DESHABILITADO - Solo usuario de prueba)
  */
 export async function registerUser(
   userData: { email: string; name: string; password: string; confirmPassword: string },
   cookies: AstroCookies
 ): Promise<{ success: boolean; user?: User; error?: string }> {
-  try {
-    // Validar que las contraseñas coincidan
-    if (userData.password !== userData.confirmPassword) {
-      return { success: false, error: 'Las contraseñas no coinciden' };
-    }
-    
-    // Validar contraseña
-    const credentialsValidation = authCredentialSchema.safeParse({
-      email: userData.email,
-      password: userData.password
-    });
-    
-    if (!credentialsValidation.success) {
-      return { 
-        success: false, 
-        error: credentialsValidation.error.issues[0]?.message || 'Datos inválidos' 
-      };
-    }
-    
-    // Verificar que el usuario no exista
-    const existingUser = MOCK_USERS.find(u => u.email === userData.email);
-    if (existingUser) {
-      return { success: false, error: 'El usuario ya existe' };
-    }
-    
-    // Crear nuevo usuario
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      email: userData.email,
-      name: userData.name
-    };
-    
-    // Validar datos del usuario
-    const validatedUser = userSchema.parse(newUser);
-    
-    // En una aplicación real, aquí guardarías en la base de datos
-    MOCK_USERS.push(validatedUser);
-    MOCK_PASSWORDS[userData.email] = userData.password;
-    
-    // Guardar usuario en cookies
-    cookies.set('auth-user', JSON.stringify(validatedUser), COOKIE_OPTIONS);
-    
-    return { success: true, user: validatedUser };
-  } catch (error) {
-    console.error('Registration error:', error);
-    
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-    
-    return { success: false, error: 'Error en el registro' };
-  }
+  // El registro está deshabilitado ya que solo hay un usuario de prueba
+  return { 
+    success: false, 
+    error: 'El registro está deshabilitado. Usa las credenciales de prueba para iniciar sesión.' 
+  };
 }
 
 /**
