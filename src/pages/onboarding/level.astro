@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import Button from "../../components/button/Button.astro";
+import { userPreferencesStore } from "../../store/userPreferencesStore";
 
 const levels = [
   {
@@ -205,6 +206,42 @@ const currentLevel = Astro.cookies.get('selectedLevel')?.value;
       </form>
     </div>
   </div>
+
+  <!-- JavaScript para store de preferencias -->
+  <script type="module">
+    import { userPreferencesStore } from '../../store/userPreferencesStore.js';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const radioButtons = document.querySelectorAll('input[name="level"]');
+      const form = document.querySelector('form');
+      
+      // Inicializar el store de preferencias
+      userPreferencesStore.getState().initialize();
+      
+      // Manejar selección de nivel
+      radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+          if (this.checked) {
+            // Guardar el nivel en el store
+            userPreferencesStore.getState().setLevel(this.value);
+          }
+        });
+      });
+      
+      // Manejar envío del formulario
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+          
+          if (selectedRadio) {
+            // Asegurar que el nivel se guarde en el store antes de continuar
+            userPreferencesStore.getState().setLevel(selectedRadio.value);
+            console.log('Level saved to preferences store:', selectedRadio.value);
+          }
+        });
+      }
+    });
+  </script>
 
   <style>
     .level-card input[type="radio"]:checked + div {

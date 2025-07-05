@@ -257,12 +257,12 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
              </p>
            </div>
           
-          <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" id="continue-btn">
-            Start Learning
-            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </button>
+                     <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600" id="continue-btn" disabled>
+             Start Learning
+             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+             </svg>
+           </button>
         </div>
       </form>
     </div>
@@ -304,16 +304,29 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             // Capitalizar la primera letra del topic
             const topicName = selectedTopic.charAt(0).toUpperCase() + selectedTopic.slice(1);
             selectionStatus.textContent = `${topicName} selected`;
+            selectionStatus.className = 'text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full';
             
             // Guardar el topic en el store
             userPreferencesStore.getState().setTopic(selectedTopic);
           } else {
             selectionStatus.textContent = 'No topic selected';
+            selectionStatus.className = 'text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full';
           }
         }
         
         if (continueBtn) {
           continueBtn.disabled = !selectedRadio;
+          
+          // Agregar/quitar clases visuales para el estado disabled
+          if (!selectedRadio) {
+            continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            continueBtn.classList.remove('hover:bg-blue-700');
+            continueBtn.title = 'Please select a topic to continue';
+          } else {
+            continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            continueBtn.classList.add('hover:bg-blue-700');
+            continueBtn.title = 'Continue to start learning';
+          }
         }
       }
       
@@ -325,6 +338,21 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
       if (form) {
         form.addEventListener('submit', function(e) {
           const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+          
+          // Prevenir envío si no hay topic seleccionado
+          if (!selectedRadio) {
+            e.preventDefault();
+            
+            // Mostrar mensaje de error
+            if (selectionStatus) {
+              selectionStatus.textContent = 'Please select a topic to continue';
+              selectionStatus.className = 'text-sm text-red-600 bg-red-100 px-3 py-1 rounded-full';
+            }
+            
+            // Hacer scroll a la sección de selección
+            document.querySelector('.grid').scrollIntoView({ behavior: 'smooth' });
+            return;
+          }
           
           if (selectedRadio && selectedLevel) {
             try {
@@ -349,4 +377,56 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
       updateStatus();
     });
   </script>
+
+  <style>
+    /* Estilos para el botón deshabilitado */
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    button:disabled:hover {
+      background-color: #3b82f6 !important;
+      transform: none !important;
+    }
+    
+    /* Estilos para las tarjetas de topics */
+    .topic-card input[type="radio"]:checked + div {
+      border-color: #3b82f6;
+      background-color: #eff6ff;
+    }
+    
+    .topic-card input[type="radio"]:checked + div h3 {
+      color: #3b82f6;
+    }
+
+    .topic-card input[type="radio"]:checked + div .w-6 {
+      border-color: #3b82f6;
+    }
+
+    .topic-card input[type="radio"]:checked + div .absolute {
+      opacity: 1;
+    }
+
+    .topic-card {
+      transition: all 0.2s ease;
+    }
+
+    .topic-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
 </Layout>
