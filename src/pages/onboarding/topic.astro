@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { userPreferencesStore } from "../../store/userPreferencesStore";
 
 // Definir los topics disponibles
 const topics = [
@@ -102,6 +103,21 @@ if (Astro.request.method === 'POST') {
       sameSite: 'lax'
     });
     
+    // Obtener el nivel seleccionado para completar las preferencias
+    const levelFromCookie = Astro.cookies.get('selectedLevel')?.value;
+    
+    if (levelFromCookie && selectedTopic) {
+      // El store se inicializará en el cliente, pero pasaremos los datos
+      // para que el JavaScript del lado del cliente pueda guardar las preferencias
+      Astro.cookies.set('completeOnboarding', 'true', {
+        path: '/',
+        maxAge: 60, // Solo 1 minuto, se limpiará automáticamente
+        httpOnly: false,
+        secure: false,
+        sameSite: 'lax'
+      });
+    }
+    
     // Redirigir a la siguiente página o dashboard
     return Astro.redirect('/dashboard');
   }
@@ -201,16 +217,6 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
                     ))}
                   </ul>
                 </div>
-
-                                 <!-- Selection Indicator -->
-                 <div class="mt-6 pt-4 border-t border-gray-100">
-                   <div class="flex items-center justify-between">
-                     <span class="text-sm text-gray-500">Select this topic</span>
-                     <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 transition-colors relative">
-                       <div class="absolute inset-1 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
-                     </div>
-                   </div>
-                 </div>
               </div>
             </label>
           ))}
@@ -262,15 +268,35 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
     </div>
   </div>
 
-  <!-- JavaScript para interactividad del selector -->
-  <script>
+  <!-- JavaScript para interactividad del selector y store -->
+  <script type="module">
+    import { userPreferencesStore } from '../../store/userPreferencesStore.js';
+    
     document.addEventListener('DOMContentLoaded', function() {
       const radioButtons = document.querySelectorAll('input[name="topic"]');
       const selectionStatus = document.getElementById('selection-status');
       const continueBtn = document.getElementById('continue-btn');
+      const form = document.querySelector('form');
+      
+      // Inicializar el store de preferencias
+      userPreferencesStore.getState().initialize();
+      
+      // Obtener cookies para el nivel seleccionado
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return null;
+      }
+      
+      // Guardar el nivel en el store si existe en cookies
+      const selectedLevel = getCookie('selectedLevel');
+      if (selectedLevel) {
+        userPreferencesStore.getState().setLevel(selectedLevel);
+      }
       
       function updateStatus() {
-        const selectedRadio = Array.from(radioButtons).find(radio => (radio as HTMLInputElement).checked) as HTMLInputElement;
+        const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
         
         if (selectionStatus) {
           if (selectedRadio) {
@@ -278,19 +304,46 @@ const currentTopic = Astro.cookies.get('selectedTopic')?.value || '';
             // Capitalizar la primera letra del topic
             const topicName = selectedTopic.charAt(0).toUpperCase() + selectedTopic.slice(1);
             selectionStatus.textContent = `${topicName} selected`;
+            
+            // Guardar el topic en el store
+            userPreferencesStore.getState().setTopic(selectedTopic);
           } else {
             selectionStatus.textContent = 'No topic selected';
           }
         }
         
         if (continueBtn) {
-          (continueBtn as HTMLButtonElement).disabled = !selectedRadio;
+          continueBtn.disabled = !selectedRadio;
         }
       }
       
       radioButtons.forEach(radio => {
         radio.addEventListener('change', updateStatus);
       });
+      
+      // Manejar envío del formulario para completar onboarding
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          const selectedRadio = Array.from(radioButtons).find(radio => radio.checked);
+          
+          if (selectedRadio && selectedLevel) {
+            try {
+              // Completar el onboarding en el store
+              userPreferencesStore.getState().completeOnboarding();
+              console.log('Onboarding completed successfully!');
+              
+              // Mostrar mensaje de éxito
+              if (selectionStatus) {
+                selectionStatus.textContent = 'Preferences saved successfully!';
+                selectionStatus.className = 'text-sm text-green-600 bg-green-100 px-3 py-1 rounded-full';
+              }
+            } catch (error) {
+              console.error('Error completing onboarding:', error);
+              // El formulario aún se enviará normalmente
+            }
+          }
+        });
+      }
       
       // Actualizar estado inicial
       updateStatus();
