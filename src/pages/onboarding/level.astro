@@ -38,6 +38,7 @@ const levels = [
 
 // Obtener el nivel actual de la URL o formulario
 const currentLevel = Astro.url.searchParams.get("level") || "";
+console.log("Current Level:", Astro.cookies.get("signin"));
 ---
 
 <Layout>
@@ -175,7 +176,7 @@ const currentLevel = Astro.url.searchParams.get("level") || "";
       </form>
     </div>
   </div>
-
+</Layout>
   <style>
     .level-card input[type="radio"]:checked + div {
       border-color: #3b82f6;
@@ -202,4 +203,4 @@ const currentLevel = Astro.url.searchParams.get("level") || "";
       transform: translateY(-2px);
     }
   </style>
-</Layout>
+
