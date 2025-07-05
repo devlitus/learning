@@ -1,0 +1,247 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Button from "../../components/button/Button.astro";
+
+const levels = [
+  {
+    id: "beginner",
+    title: "Beginner",
+    subtitle: "A1 - A2",
+    description: "I'm just starting to learn English. I know basic words and simple phrases.",
+    icon: "🌱",
+    features: ["Basic vocabulary", "Simple sentences", "Present tense", "Common phrases"]
+  },
+  {
+    id: "elementary", 
+    title: "Elementary",
+    subtitle: "A2 - B1",
+    description: "I can understand and use familiar everyday expressions and basic phrases.",
+    icon: "📚",
+    features: ["Past and future tenses", "Question formation", "Basic conversations", "Travel vocabulary"]
+  },
+  {
+    id: "intermediate",
+    title: "Intermediate", 
+    subtitle: "B1 - B2",
+    description: "I can understand the main points of clear standard input on familiar matters.",
+    icon: "🎯",
+    features: ["Complex sentences", "Conditionals", "Business English", "Media comprehension"]
+  },
+  {
+    id: "advanced",
+    title: "Advanced",
+    subtitle: "B2 - C1", 
+    description: "I can understand a wide range of demanding texts and express myself fluently.",
+    icon: "🚀",
+    features: ["Nuanced communication", "Academic writing", "Idioms & expressions", "Professional English"]
+  },
+  {
+    id: "proficient",
+    title: "Proficient",
+    subtitle: "C1 - C2",
+    description: "I can understand virtually everything heard or read with ease.",
+    icon: "👑",
+    features: ["Native-like fluency", "Complex argumentation", "Literary analysis", "Expert communication"]
+  }
+];
+
+// Manejar la selección del nivel (SSR)
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const selectedLevel = formData.get('level');
+  
+  if (selectedLevel) {
+    // Guardar en cookies
+    Astro.cookies.set('selectedLevel', selectedLevel, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 días
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax'
+    });
+    
+    // Redirigir a la siguiente página
+    return Astro.redirect('/onboarding/topic');
+  }
+}
+
+// Obtener el nivel seleccionado de las cookies (para mantener el estado)
+const currentLevel = Astro.cookies.get('selectedLevel')?.value;
+---
+
+<Layout>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
+      <!-- Header Section -->
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
+          <span class="text-2xl">🎓</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          What's your English level?
+        </h1>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Choose the level that best describes your current English skills. 
+          This helps us personalize your learning experience.
+        </p>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div class="flex justify-center mb-12">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+          <div class="w-8 h-2 bg-gray-200 rounded-full"></div>
+        </div>
+        <span class="ml-4 text-sm text-gray-500">Step 1 of 2</span>
+      </div>
+
+      <!-- Formulario de selección de nivel -->
+      <form method="POST" class="space-y-8">
+        <!-- Level Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {levels.map((level) => (
+            <label class="level-card cursor-pointer" for={level.id}>
+              <input 
+                type="radio" 
+                name="level" 
+                id={level.id} 
+                value={level.id}
+                class="sr-only peer"
+                checked={currentLevel === level.id}
+              />
+              <div class="bg-white rounded-2xl border-2 border-gray-100 p-6 h-full transition-all duration-300 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-xl">
+                <!-- Icon and Level -->
+                <div class="flex items-center justify-between mb-4">
+                  <div class="text-3xl">{level.icon}</div>
+                  <div class="text-right">
+                    <h3 class="text-xl font-bold text-gray-900 peer-checked:text-blue-600 transition-colors">
+                      {level.title}
+                    </h3>
+                    <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      {level.subtitle}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Description -->
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                  {level.description}
+                </p>
+
+                <!-- Features -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-3">You can:</h4>
+                  <ul class="space-y-2">
+                    {level.features.map((feature) => (
+                      <li class="flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <!-- Selection Indicator -->
+                <div class="mt-6 pt-4 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Select this level</span>
+                    <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 transition-colors relative">
+                      <div class="absolute inset-1 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <!-- Not Sure Option -->
+        <div class="max-w-2xl mx-auto mb-8">
+          <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <div class="flex items-center justify-center mb-4">
+              <span class="text-2xl">🤔</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">
+              Not sure about your level?
+            </h3>
+            <p class="text-gray-600 text-center mb-4">
+              Take our quick assessment test to discover your English proficiency level.
+            </p>
+            <div class="text-center">
+              <a href="/onboarding/assessment" class="inline-flex items-center bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Take Assessment Test
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <a href="/onboarding/previous" class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back
+          </a>
+          
+          <div class="text-center flex-1">
+            <p class="text-sm text-gray-500">
+              Your level can be adjusted later in your profile settings
+            </p>
+          </div>
+          
+          <button type="submit" class="bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto inline-flex items-center justify-center">
+            Continue
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    .level-card input[type="radio"]:checked + div {
+      border-color: #3b82f6;
+      background-color: #eff6ff;
+    }
+    
+    .level-card input[type="radio"]:checked + div h3 {
+      color: #3b82f6;
+    }
+
+    .level-card input[type="radio"]:checked + div .w-6 {
+      border-color: #3b82f6;
+    }
+
+    .level-card input[type="radio"]:checked + div .absolute {
+      opacity: 1;
+    }
+
+    .level-card {
+      transition: all 0.2s ease;
+    }
+
+    .level-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</Layout>

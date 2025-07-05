@@ -9,8 +9,13 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/node": "^9.3.0",
     "@tailwindcss/vite": "^4.1.11",
+    "@types/uuid": "^10.0.0",
     "astro": "^5.11.0",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.73",
+    "zustand": "^5.0.6"
   }
 }

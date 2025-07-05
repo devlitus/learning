@@ -1,0 +1,172 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+// Obtener el nivel seleccionado de las cookies
+const selectedLevel = Astro.cookies.get("selectedLevel")?.value;
+
+// Información de los niveles para mostrar
+const levelInfo = {
+  beginner: { title: "Beginner", subtitle: "A1 - A2", icon: "🌱" },
+  elementary: { title: "Elementary", subtitle: "A2 - B1", icon: "📚" },
+  intermediate: { title: "Intermediate", subtitle: "B1 - B2", icon: "🎯" },
+  advanced: { title: "Advanced", subtitle: "B2 - C1", icon: "🚀" },
+  proficient: { title: "Proficient", subtitle: "C1 - C2", icon: "👑" },
+} as const;
+
+type LevelKey = keyof typeof levelInfo;
+
+const currentLevelInfo =
+  selectedLevel && selectedLevel in levelInfo
+    ? levelInfo[selectedLevel as LevelKey]
+    : null;
+---
+
+<Layout>
+  <div
+    class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"
+  >
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+      <!-- Header Section -->
+      <div class="text-center mb-12">
+        <div
+          class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6"
+        >
+          <span class="text-2xl">🎯</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          What topics interest you?
+        </h1>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Select the topics you'd like to focus on in your English learning
+          journey.
+        </p>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div class="flex justify-center mb-12">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+          <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+        </div>
+        <span class="ml-4 text-sm text-gray-500">Step 2 of 2</span>
+      </div>
+
+      <!-- Nivel seleccionado -->
+      {
+        currentLevelInfo && (
+          <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-center mb-4">
+              <div class="text-3xl mr-3">{currentLevelInfo.icon}</div>
+              <div class="text-center">
+                <h2 class="text-xl font-bold text-gray-900">
+                  Selected Level: {currentLevelInfo.title}
+                </h2>
+                <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                  {currentLevelInfo.subtitle}
+                </span>
+              </div>
+            </div>
+            <p class="text-gray-600 text-center">
+              Great! Your English level has been set. Now let's choose your
+              learning topics.
+            </p>
+          </div>
+        )
+      }
+
+      <!-- Contenido temporal -->
+      <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">
+          ✅ SSR Navigation Working!
+        </h2>
+        <p class="text-gray-600 mb-6">
+          You successfully navigated using Server-Side Rendering.
+          {
+            selectedLevel
+              ? `Your selected level (${selectedLevel}) was saved in cookies.`
+              : "No level was selected."
+          }
+        </p>
+
+        <div class="space-y-4">
+          <p class="text-sm text-gray-500">This page demonstrates that:</p>
+          <ul class="text-left max-w-md mx-auto space-y-2">
+            <li class="flex items-center text-sm text-gray-600">
+              <svg
+                class="w-4 h-4 text-green-500 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"></path>
+              </svg>
+              Form submission works server-side
+            </li>
+            <li class="flex items-center text-sm text-gray-600">
+              <svg
+                class="w-4 h-4 text-green-500 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"></path>
+              </svg>
+              Cookies are saved and retrieved
+            </li>
+            <li class="flex items-center text-sm text-gray-600">
+              <svg
+                class="w-4 h-4 text-green-500 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"></path>
+              </svg>
+              Server-side redirection works
+            </li>
+            <li class="flex items-center text-sm text-gray-600">
+              <svg
+                class="w-4 h-4 text-green-500 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"></path>
+              </svg>
+              No client-side JavaScript needed
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-8">
+          <a
+            href="/onboarding/level"
+            class="inline-flex items-center bg-blue-600 text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded transition-all duration-200 mr-4"
+          >
+            <svg
+              class="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Level Selection
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
