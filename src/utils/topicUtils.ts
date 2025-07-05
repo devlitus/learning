@@ -36,7 +36,8 @@ export async function getAllTopicsWithCategories(accessToken?: string): Promise<
         *,
         category:topic_category(*)
       `)
-      .order('category_id, id');
+      .order('category_id')
+      .order('id');
     
     if (error) {
       console.error('Error fetching topics with categories:', error);
