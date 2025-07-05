@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { supabase } from "../../lib/supabase";
 import { authCredentialSchema } from "../../schema/authCredential.schema";
+import { setAuthTokens } from "../../utils/serverAuth";
 
 export const prerender = false;
 
@@ -68,17 +69,9 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect("/signin?error=" + encodeURIComponent("Error al obtener los datos del usuario"));
     }
 
-    // Guardar tokens en cookies
-    const cookieOptions = {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 días
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const
-    };
-    cookies.set("sb-access-token", data.session.access_token, cookieOptions);
-    cookies.set("sb-refresh-token", data.session.refresh_token, cookieOptions);
-    console.log("[SIGNIN] Paso 9: Tokens guardados en cookies");
+    // Guardar tokens en cookies usando las nuevas utilidades
+    console.log("[SIGNIN] Paso 9: Guardando tokens con nuevas utilidades");
+    setAuthTokens(cookies, data.session.access_token, data.session.refresh_token);
 
     // Redirigir al onboarding
     console.log("[SIGNIN] Paso 10: Redirigiendo a /onboarding/level");

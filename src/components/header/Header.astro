@@ -1,23 +1,12 @@
 ---
-import "../styles/global.css";
-import { getAuthenticatedUser } from "../utils/serverAuth";
+import { getAuthenticatedUser } from "../../utils/serverAuth";
 
 // Obtener el usuario autenticado (si existe)
 const currentUser = await getAuthenticatedUser(Astro.cookies);
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Learning Platform</title>
-  </head>
-  <body>
-    <!-- Header con navegación -->
-    {currentUser && (
+<header>
+   {currentUser && (
       <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="container mx-auto px-4 py-4">
           <div class="flex items-center justify-between">
@@ -54,11 +43,4 @@ const currentUser = await getAuthenticatedUser(Astro.cookies);
         </div>
       </header>
     )}
-
-    <!-- Contenido principal -->
-    <main>
-      <slot />
-    </main>
-  </body>
-</html>
-
+</header>

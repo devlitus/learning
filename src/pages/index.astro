@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { getAuthenticatedUser } from "../utils/ssrAuthUtils";
+import { getAuthenticatedUser } from "../utils/serverAuth";
 
 // Verificar el estado de autenticación
 const currentUser = await getAuthenticatedUser(Astro.cookies);

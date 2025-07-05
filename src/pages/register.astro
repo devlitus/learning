@@ -3,12 +3,13 @@ import AuthLayout from "../layouts/AuthLayout.astro";
 import Button from "../components/button/Button.astro";
 import Input from "../components/input/Input.astro";
 import Label from "../components/label/Label.astro";
-import { getSupabaseTokens } from "../utils/ssrAuthUtils";
+import { getAuthTokens } from "../utils/serverAuth";
+// import { getAuthTokens } from "../utils/simpleAuth"; // Alternativa si no tienes serverAuth
 
 const { cookies, redirect } = Astro;
 
 // Verificar si ya está autenticado
-const { accessToken, refreshToken } = getSupabaseTokens(cookies);
+const { accessToken, refreshToken } = getAuthTokens(cookies);
 
 if (accessToken && refreshToken) {
   return redirect("/onboarding/level");

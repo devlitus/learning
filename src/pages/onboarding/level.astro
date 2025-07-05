@@ -1,7 +1,8 @@
 ---
 import Button from "../../components/button/Button.astro";
 import Layout from "../../layouts/Layout.astro";
-import { getAuthenticatedUser } from "../../utils/ssrAuthUtils";
+import { getAuthenticatedUser, getAuthTokens } from "../../utils/serverAuth";
+import { getAllLevels, transformLevelForUI, getLevelIdByName, assignLevelToUserSafely, getUserLevel } from "../../utils/levelUtils";
 
 export const prerender = false;
 
@@ -13,43 +14,20 @@ if (!currentUser) {
   return Astro.redirect("/signin");
 }
 
-const levels = [
-  {
-    id: "beginner",
-    title: "Beginner",
-    subtitle: "A1 - A2",
-    description: "I'm just starting to learn English. I know basic words and simple phrases.",
-    icon: "🌱",
-    features: ["Basic vocabulary", "Simple sentences", "Present tense", "Common phrases"]
-  },
-  {
-    id: "elementary", 
-    title: "Elementary",
-    subtitle: "A2 - B1",
-    description: "I can understand and use familiar everyday expressions and basic phrases.",
-    icon: "📚",
-    features: ["Past and future tenses", "Question formation", "Basic conversations", "Travel vocabulary"]
-  },
-  {
-    id: "intermediate",
-    title: "Intermediate", 
-    subtitle: "B1 - B2",
-    description: "I can understand the main points of clear standard input on familiar matters.",
-    icon: "🎯",
-    features: ["Complex sentences", "Conditionals", "Business English", "Media comprehension"]
-  },
-  {
-    id: "advanced",
-    title: "Advanced",
-    subtitle: "B2 - C1", 
-    description: "I can understand a wide range of demanding texts and express myself fluently.",
-    icon: "🚀",
-    features: ["Nuanced communication", "Academic writing", "Idioms & expressions", "Professional English"]
-  },
-];
+// Obtener tokens para las consultas a Supabase
+const { accessToken } = getAuthTokens(Astro.cookies);
 
-// Obtener el nivel actual de la URL o formulario
-const currentLevel = Astro.url.searchParams.get("level") || "";
+const dbLevels = await getAllLevels(accessToken || undefined);
+
+const levels = dbLevels.map(transformLevelForUI);
+
+
+// Verificar si el usuario ya tiene un nivel asignado
+const userCurrentLevel = await getUserLevel(currentUser.id, accessToken || undefined);
+const userLevelName = userCurrentLevel ? userCurrentLevel.title?.toLowerCase() : null;
+
+// Obtener el nivel actual de la URL, formulario o nivel del usuario
+const currentLevel = Astro.url.searchParams.get("level") || userLevelName || "";
 
 // Manejar el envío del formulario POST
 if (Astro.request.method === "POST") {
@@ -58,14 +36,21 @@ if (Astro.request.method === "POST") {
     const selectedLevel = formData.get("level")?.toString();
     
     if (!selectedLevel) {
-      console.error("SSR: No level selected");
       return Astro.redirect("/onboarding/level?error=no-level");
     }
     
-    console.log("SSR: Level selected:", selectedLevel);
-    
-    // TODO: Guardar el nivel en la base de datos
-    // Aquí puedes agregar la lógica para actualizar el perfil del usuario
+    // Guardar el nivel en la base de datos
+    if (selectedLevel !== "assessment") {
+      const { accessToken: postAccessToken } = getAuthTokens(Astro.cookies);
+      const levelId = await getLevelIdByName(selectedLevel, postAccessToken || undefined);
+      if (levelId) {
+        const success = await assignLevelToUserSafely(levelId, currentUser.id, postAccessToken || undefined);
+        if (!success) {
+          console.error("SSR: Failed to assign level to user");
+          return Astro.redirect("/onboarding/level?error=database");
+        }
+      }
+    }
     
     // Redirigir al siguiente paso del onboarding
     if (selectedLevel === "assessment") {
@@ -79,9 +64,6 @@ if (Astro.request.method === "POST") {
     return Astro.redirect("/onboarding/level?error=processing");
   }
 }
-
-console.log("SSR: Level page - User authenticated:", currentUser.name);
-console.log("SSR: Current level from URL:", currentLevel);
 
 // Obtener errores de la URL si los hay
 const error = Astro.url.searchParams.get("error");
@@ -105,6 +87,22 @@ const error = Astro.url.searchParams.get("error");
           No te preocupes, siempre puedes cambiarlo más tarde.
         </p>
         
+        {userCurrentLevel && (
+          <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+            <div class="flex items-center">
+              <div class="text-2xl mr-3">{userCurrentLevel.icon}</div>
+              <div>
+                <p class="text-sm font-medium text-blue-800">
+                  Nivel actual: {userCurrentLevel.title} ({userCurrentLevel.sub_title})
+                </p>
+                <p class="text-xs text-blue-600">
+                  Puedes cambiar tu nivel seleccionando uno diferente
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <!-- Mostrar errores si los hay -->
         {error && (
           <div class="mt-6 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
@@ -118,6 +116,7 @@ const error = Astro.url.searchParams.get("error");
                 <p class="text-sm text-red-800">
                   {error === "no-level" && "Por favor selecciona un nivel antes de continuar."}
                   {error === "processing" && "Hubo un error al procesar tu selección. Inténtalo de nuevo."}
+                  {error === "database" && "Error al guardar en la base de datos. Inténtalo de nuevo."}
                 </p>
               </div>
             </div>
@@ -136,7 +135,27 @@ const error = Astro.url.searchParams.get("error");
 
       <!-- Formulario de selección de nivel -->
       <form method="POST" class="space-y-8">
+        
+        <!-- Verificar si hay niveles disponibles -->
+        {levels.length === 0 && (
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">⚠️</div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">No hay niveles disponibles</h3>
+            <p class="text-gray-600 mb-4">
+              Parece que no se pudieron cargar los niveles desde la base de datos.
+            </p>
+            <button 
+              type="button" 
+              onclick="window.location.reload()"
+              class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Recargar página
+            </button>
+          </div>
+        )}
+        
         <!-- Level Selection Grid -->
+        {levels.length > 0 && (
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {levels.map((level) => (
             <label class="level-card cursor-pointer" for={level.id}>
@@ -192,8 +211,10 @@ const error = Astro.url.searchParams.get("error");
             </label>
           ))}
         </div>
+        )}
 
         <!-- Botón personalizado para "Not sure" -->
+        {levels.length > 0 && (
         <div class="text-center mb-8">
           <label class="level-card cursor-pointer inline-block" for="not-sure">
             <input 
@@ -215,8 +236,10 @@ const error = Astro.url.searchParams.get("error");
             </div>
           </label>
         </div>
+        )}
 
         <!-- Action Buttons -->
+        {levels.length > 0 && (
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
           <a href="/signin" class="inline-flex items-center border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 font-semibold py-2 px-4 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,6 +265,7 @@ const error = Astro.url.searchParams.get("error");
             </svg>
           </Button>
         </div>
+        )}
       </form>
     </div>
   </div>
